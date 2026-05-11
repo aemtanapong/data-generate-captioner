@@ -72,6 +72,7 @@ def calculate_district_metrics(radar_frame_rgba, district_gdf, radar_extent, tar
         min_distances = distances[np.arange(len(pixels_in_district)), min_dist_indices]
 
         pixel_values = np.where(min_distances < threshold, values[min_dist_indices], 0.0)
+        # print("pixel_values : ",pixel_values)
 #         print(pixel_values)
         if np.sum(pixel_values > 0) > 0:
             district_scores[district_name] = np.mean(pixel_values[pixel_values > 0])
@@ -218,13 +219,14 @@ def process_radar_animation_and_extract_district_values(
 
         # Call the existing calculate_district_metrics function
         frame_coverage, frame_scores = calculate_district_metrics(
-            frame_rgba, gdf, img_extent, target_colors, values, threshold
+            frame_rgba, gdf, img_extent, target_colors, values, threshold = threshold
         )
         all_frames_coverage.append(frame_coverage)
         all_frames_district_scores.append(frame_scores)
-        if (i + 1) % 10 == 0 or (i + 1) == len(frames_rgb_processed):
-            print(f"  Processed frame {i+1}/{len(frames_rgb_processed)}")
-
+        # if (i + 1) % 10 == 0 or (i + 1) == len(frames_rgb_processed):
+        print(f"  Processed frame {i+1}/{len(frames_rgb_processed)}")
+        print("frame_coverage",frame_coverage)
+        print("frame_scores",frame_scores)
     print("Finished calculating district metrics for all frames.")
     if update: update("🌧️ การคำนวนภาพรวมแต่ละเขตเวลา...", 0.4)
     # --- 5. Convert results to DataFrame ---
@@ -320,7 +322,8 @@ def generate_data(gif_path, update = None):
             shapefile_path=shapefile_path,
             target_colors=target_colors,
             values=values,
-            update=update
+            update=update,
+            threshold=20
     )
     data['data_rain_level_frame'] = df_radar_metrics
 

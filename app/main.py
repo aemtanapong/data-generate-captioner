@@ -13,6 +13,7 @@ import time
 import model_main
 import random
 from datetime import datetime
+import re
 plt.rcParams['font.family'] = 'Tahoma'
 # with st.sidebar:
 #     with st.echo():
@@ -347,7 +348,22 @@ if uploaded_file is not None:
                 'max_rain_name':map_df.loc[map_df['Score'].idxmax()]['District'],
                 'max_rain_level_value':round(map_df.loc[map_df['Score'].idxmax()]['Score'], 2)
             }
-            st.write(model_main.generate_caption(data))
+            data_caption = model_main.generate_caption(data)
+            data_caption = data_caption.replace(" ", '')
+            # Pattern matches floats (e.g., 5.50) or integers (e.g., 2, 99)
+
+
+            # \1 inserts the matched number, surrounded by spaces
+            data_caption = re.sub(r"(\d+\.\d+|\d+)", r" \1 ", data_caption)
+
+            # Clean up any accidental double spaces created by the operation
+            data_caption = re.sub(r" +", " ", data_caption).strip()
+
+            data_caption = data_caption.replace("/", " / ")
+            data_caption = data_caption.replace(",", ", ")
+            # Output: "The pric
+            print(data_caption)
+            st.write(data_caption)
     # st.subheader("📊 Raw Data")
     # st.dataframe(rain_intensity["raw"])
 
