@@ -197,11 +197,7 @@ class RainCaptionInference:
     # =========================
     # GENERATE
     # =========================
-    def generate(
-        self,
-        text,
-        max_len=256
-    ):
+    def generate(self, text, max_len=256,temperature=1.0,top_k=0):
 
         x = torch.tensor([
             [SOS]
@@ -211,19 +207,50 @@ class RainCaptionInference:
 
         y = torch.tensor([[SOS]]).to(DEVICE)
 
+        self.model.eval()
+
         with torch.no_grad():
 
             for _ in range(max_len):
 
                 out = self.model(x, y)
 
-                logits = out[:, -1]
+                # logits ของ token ล่าสุด
+                logits = out[:, -1, :]
 
-                next_id = torch.argmax(
-                    logits,
-                    dim=-1
-                ).item()
+                # =========================
+                # TEMPERATURE
+                # =========================
+                logits = logits / temperature
 
+                # =========================
+                # TOP-K SAMPLING
+                # =========================
+                if top_k > 0:
+
+                    values, indices = torch.topk(
+                        logits,
+                        k=top_k,
+                        dim=-1
+                    )
+
+                    probs = torch.softmax(values, dim=-1)
+
+                    sampled_idx = torch.multinomial(
+                        probs,
+                        num_samples=1
+                    )
+
+                    next_id = indices[0, sampled_idx.item()].item()
+
+                else:
+                    # greedy
+                    next_id = torch.argmax(
+                        logits,
+                        dim=-1
+                    ).item()
+
+                # append token
                 y = torch.cat([
                     y,
                     torch.tensor([[next_id]]).to(DEVICE)
@@ -235,8 +262,7 @@ class RainCaptionInference:
         return self.vocab.decode(
             y[0].tolist()
         )
-
-def generate_caption(data):
+def generate_caption(data,temperature=1.0,top_k=0):
     model = RainCaptionInference(
         "app/checkpoint-100.pth"
     )
@@ -264,7 +290,7 @@ max_rain_level_value:{data['max_rain_level_value']}
 </xml>
 """
     print(data)
-    return model.generate(data)
+    return model.generate(data, 256 ,temperature, top_k)
 
 # =========================
 # TEST

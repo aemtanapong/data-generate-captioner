@@ -22,7 +22,23 @@ plt.rcParams['font.family'] = 'Tahoma'
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
 import plotly.express as px
-uploaded_file = st.file_uploader("Upload Radar GIF", type=["gif", "webp"])
+with st.status("generate caption", expanded=True) as n:
+    uploaded_file = st.file_uploader("Upload Radar GIF", type=["gif", "webp"])
+    temperature = st.slider(
+                    "Temperature",
+                    min_value=0.1,
+                    max_value=2.0,
+                    value=1.0,
+                    step=0.1
+                )
+
+    top_k = st.slider(
+        "Top-K",
+        min_value=1,
+        max_value=50,
+        value=6,
+        step=1
+    )
 def ui_update(text, p):
     status.write(text)
     progress.progress(p)
@@ -326,7 +342,10 @@ if uploaded_file is not None:
 
             st.pyplot(fig4)
     with st.status("🌧️ Generate Cpation data", expanded=True) as status:
+         
          with st.spinner("กำลังประมวลผล..."):
+
+            
             st.write(map_df)
 
             date_n = datetime.now()
@@ -348,7 +367,7 @@ if uploaded_file is not None:
                 'max_rain_name':map_df.loc[map_df['Score'].idxmax()]['District'],
                 'max_rain_level_value':round(map_df.loc[map_df['Score'].idxmax()]['Score'], 2)
             }
-            data_caption = model_main.generate_caption(data)
+            data_caption = model_main.generate_caption(data, temperature=1.0, top_k=6)
             data_caption = data_caption.replace(" ", '')
             # Pattern matches floats (e.g., 5.50) or integers (e.g., 2, 99)
 
