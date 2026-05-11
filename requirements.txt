@@ -14,3 +14,4 @@ fiona==1.9.6
 pyproj==3.6.1
 shapely==2.0.3
 torch
+pythainlp
