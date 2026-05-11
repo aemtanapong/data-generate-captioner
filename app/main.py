@@ -10,6 +10,9 @@ import imageio
 import io
 import geopandas as gpd
 import time
+import model_main
+import random
+from datetime import datetime
 plt.rcParams['font.family'] = 'Tahoma'
 # with st.sidebar:
 #     with st.echo():
@@ -141,6 +144,13 @@ if uploaded_file is not None:
             # ==================================================
             # with col1:
             st.subheader("📈 Trend")
+            st.markdown("""
+                ### 📈 แนวโน้มฝน (Trend)
+                กราฟนี้แสดงการเปลี่ยนแปลงของความเข้มฝน (Score) ตามเวลา (Frame) ในแต่ละเขต  
+                - เส้นที่สูงขึ้น = ฝนกำลังเพิ่ม  
+                - เส้นที่ลดลง = ฝนกำลังลด  
+                ใช้ดูว่าฝนกำลังเคลื่อนเข้า หรือออกจากพื้นที่
+                """)
             st.caption("ดูการเพิ่ม-ลดของฝนในแต่ละเขต")
 
             fig1 = px.line(
@@ -159,8 +169,12 @@ if uploaded_file is not None:
             # 📊 BAR
             # ==================================================
             # with col2:
-            st.subheader("🏆 Avg Score")
-
+            st.subheader("🏆 ค่าเฉลี่ยความเข้มฝน")
+            st.markdown("""
+            กราฟนี้แสดงค่าเฉลี่ยความเข้มฝนของแต่ละเขต  
+            - แท่งสูง = เขตที่มีฝนแรงโดยรวม  
+            ใช้เปรียบเทียบว่าเขตไหนมีฝนมากที่สุดในช่วงเวลาทั้งหมด
+            """)
             avg = df.groupby("District", as_index=False)["Score"].mean()
 
             fig2 = px.bar(
@@ -219,6 +233,8 @@ if uploaded_file is not None:
             # merge
             map_df = gdf.merge(summary, on="District", how="left")
             map_df["Score"] = map_df["Score"].fillna(0)
+            
+            map_df = map_df.sort_values(by='Score', ascending=False)
 
             # -------------------------
             # LEVEL
@@ -308,6 +324,30 @@ if uploaded_file is not None:
             # ax4.legend()
 
             st.pyplot(fig4)
+    with st.status("🌧️ Generate Cpation data", expanded=True) as status:
+         with st.spinner("กำลังประมวลผล..."):
+            st.write(map_df)
+
+            date_n = datetime.now()
+            data = {
+                'coverage': random.randint(10, 100),
+                # 'large_rain_district_name':['สาทร'],
+                # 'mid_rain_district_name':[],
+                # 'light_rain_district_name':[],
+                'large_rain_district_name':list(map_df[map_df['level'] == 'Large']['District']),
+                'mid_rain_district_name':list(map_df[map_df['level'] == 'Medium']['District']),
+                'light_rain_district_name':list(map_df[map_df['level'] == 'Light']['District']),
+                'tempurature':30,
+                'rh':66,
+                'day':date_n.day,
+                'month':date_n.month,
+                'year':date_n.year + 543,
+                'hour': date_n.hour,
+                'minute':date_n.minute,
+                'max_rain_name':map_df.loc[map_df['Score'].idxmax()]['District'],
+                'max_rain_level_value':round(map_df.loc[map_df['Score'].idxmax()]['Score'], 2)
+            }
+            st.write(model_main.generate_caption(data))
     # st.subheader("📊 Raw Data")
     # st.dataframe(rain_intensity["raw"])
 
