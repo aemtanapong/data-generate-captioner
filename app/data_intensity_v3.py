@@ -325,6 +325,7 @@ def generate_data(gif_path, update = None):
             update=update,
             threshold=20
     )
+    
     data['data_rain_level_frame'] = df_radar_metrics
 
     if update: update("🌧️ กำลังตรวจสอบพื้นที่ที่มีฝน...", 0.3)
