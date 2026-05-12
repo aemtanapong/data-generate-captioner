@@ -296,4 +296,4 @@ def get_data(GIF_PATH):
     
     average_coverage = np.mean(coverage_values)
         # plot_img is numpy image
-    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg,
+    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg, average_coverage
