@@ -19,7 +19,7 @@ GIF_PATH = "/content/drive/MyDrive/radar/n006.gif"
 SHP_PATH = "./mapdata/Export_Output.shp"
 
 OUTPUT_DIR = "/content/rain_debug_split"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # =========================================================
 # RADAR INFO
@@ -293,7 +293,7 @@ def get_data(GIF_PATH):
 
     buf.close()
     plt.close(fig)
-
+    
     average_coverage = np.mean(coverage_values)
         # plot_img is numpy image
-    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg,average_coverage
+    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg,
