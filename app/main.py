@@ -11,34 +11,19 @@ import io
 import geopandas as gpd
 import time
 import model_main
+import plotly.express as px
 import random
 from datetime import datetime
 import re
+import data_coverage
 plt.rcParams['font.family'] = 'Tahoma'
-# with st.sidebar:
-#     with st.echo():
-#         st.write("This code will be printed to the sidebar.")
 
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
-import plotly.express as px
+
 with st.status("generate caption", expanded=True) as n:
     uploaded_file = st.file_uploader("Upload Radar GIF", type=["gif", "webp"])
-    temperature = st.slider(
-                    "Temperature",
-                    min_value=0.1,
-                    max_value=2.0,
-                    value=1.0,
-                    step=0.1
-                )
-
-    top_k = st.slider(
-        "Top-K",
-        min_value=1,
-        max_value=50,
-        value=6,
-        step=1
-    )
+    
 def ui_update(text, p):
     status.write(text)
     progress.progress(p)
@@ -134,264 +119,19 @@ if uploaded_file is not None:
             # data_intensity_v3.get_district_name_rain(gif_buffer)
             print("data")
             st.success("Done!")
-        
-
-    with st.status("🌧️ Interactive Radar Data", expanded=True) as status:
+    with st.status("Coverage คำนวนคลอบคลุมฝน", expanded=True) as status:
+        rgb, mask_vis ,cropped, rain_vis, highlight, plot_img, average_coverage = data_coverage.get_data(uploaded_file)
         print("data")
-        with st.spinner("กำลังประมวลผล..."):
-            st.title("🌧️ Interactive Radar Data")
-            progress = st.progress(0.3)
-            status_text = st.empty()
-            
-            
-
-            df_rain_intensity = data_intensity_v3.generate_data(uploaded_file, ui_update)
-            df = df_rain_intensity['data_rain_level_frame']
-            # -------------------------
-            # PROGRESS BAR
-            # -------------------------
-            
-            # -------------------------
-            # LAYOUT
-            # -------------------------
-            col1, col2, col3 = st.columns(3)
-
-            # ==================================================
-            # 📈 LINE
-            # ==================================================
-            # with col1:
-            st.subheader("📈 Trend")
-            st.markdown("""
-                ### 📈 แนวโน้มฝน (Trend)
-                กราฟนี้แสดงการเปลี่ยนแปลงของความเข้มฝน (Score) ตามเวลา (Frame) ในแต่ละเขต  
-                - เส้นที่สูงขึ้น = ฝนกำลังเพิ่ม  
-                - เส้นที่ลดลง = ฝนกำลังลด  
-                ใช้ดูว่าฝนกำลังเคลื่อนเข้า หรือออกจากพื้นที่
-                """)
-            st.caption("ดูการเพิ่ม-ลดของฝนในแต่ละเขต")
-
-            fig1 = px.line(
-                df,
-                x="Frame",
-                y="Score",
-                color="District",
-                markers=True
-            )
-
-            st.plotly_chart(fig1, use_container_width=True)
-
-
-
-            # ==================================================
-            # 📊 BAR
-            # ==================================================
-            # with col2:
-            st.subheader("🏆 ค่าเฉลี่ยความเข้มฝน")
-            st.markdown("""
-            กราฟนี้แสดงค่าเฉลี่ยความเข้มฝนของแต่ละเขต  
-            - แท่งสูง = เขตที่มีฝนแรงโดยรวม  
-            ใช้เปรียบเทียบว่าเขตไหนมีฝนมากที่สุดในช่วงเวลาทั้งหมด
-            """)
-            avg = df.groupby("District", as_index=False)["Score"].mean()
-
-            fig2 = px.bar(
-                avg,
-                x="District",
-                y="Score",
-                color="Score"
-            )
-
-            st.plotly_chart(fig2, use_container_width=True)
-
-
-
-            # ==================================================
-            # 🔥 HEATMAP
-            # ==================================================
-            # with col3:
-            st.subheader("🔥 Heatmap")
-
-            pivot = df.pivot_table(
-                index="District",
-                columns="Frame",
-                values="Score",
-                fill_value=0
-            )
-
-            fig3 = px.imshow(
-                pivot,
-                text_auto=True,
-                color_continuous_scale="YlOrRd"
-            )
-
-            st.plotly_chart(fig3, use_container_width=True)
-
-
-            ui_update("✅สำเร็จ", 1.0)
-            st.success("🗺️ Mock Radar District Map")
-    with st.status("🌧️ Interactive Radar Data", expanded=True) as status:
-         with st.spinner("กำลังประมวลผล..."):
-            st.title("🗺️ Mock Radar District Map")
-            progress = st.progress(0.3)
-            status_text = st.empty()
-            print(df_rain_intensity)
-
-                        # -------------------------
-            # LOAD DATA
-            # -------------------------
-            gdf = gpd.read_file("mapdata/Export_Output.shp")
-
-            df = df_rain_intensity['data_rain_level_frame']
-            summary = df.groupby("District", as_index=False)["Score"].mean()
-
-            # rename ให้ตรง
-            gdf = gdf.rename(columns={"DISTRICT_T": "District"})
-
-            # merge
-            map_df = gdf.merge(summary, on="District", how="left")
-            map_df["Score"] = map_df["Score"].fillna(0)
-            
-            map_df = map_df.sort_values(by='Score', ascending=False)
-
-            # -------------------------
-            # LEVEL
-            # -------------------------
-            map_df["level"] = pd.cut(
-                map_df["Score"],
-                bins=[0, 15, 30, 100],
-                labels=["Light", "Medium", "Heavy"]
-            )
-
-            colors = {
-                "Light": "green",
-                "Medium": "orange",
-                "Heavy": "red"
-            }
-
-            # -------------------------
-            # PLOT (ครั้งเดียวพอ)
-            # -------------------------
-            fig, ax = plt.subplots(figsize=(10, 10))
-
-            # เขตไม่มีฝน (background)
-            map_df[map_df["Score"] == 0].plot(
-                ax=ax,
-                color="lightgrey",
-                edgecolor="black"
-            )
-
-            # เขตมีฝน (แบ่ง level)
-            for lvl, color in colors.items():
-                subset = map_df[map_df["level"] == lvl]
-                subset.plot(
-                    ax=ax,
-                    color=color,
-                    label=lvl,
-                    edgecolor="black"
-                )
-
-            # -------------------------
-            # LABEL (เฉพาะมีฝน)
-            # -------------------------
-            rain = map_df[map_df["Score"] > 0]
-
-            for _, row in rain.iterrows():
-                if row.geometry is not None:
-                    x = row.geometry.centroid.x
-                    y = row.geometry.centroid.y
-                    ax.text(x, y, row["District"], fontsize=7, ha="center")
-
-            # -------------------------
-            # STYLE
-            # -------------------------
-            ax.set_title("🌧️ Rain Map by District", fontsize=14)
-            ax.axis("off")
-            ax.legend()
-
-            # -------------------------
-            # STREAMLIT
-            # -------------------------
-            st.pyplot(fig)
-
-            rain_df = summary[summary["Score"] > 0].sort_values("Score", ascending=False)
-
-            top = rain_df.head(10)
-
-            fig3, ax3 = plt.subplots(figsize=(8, 5))
-            ax3.barh(top["District"], top["Score"])
-
-            ax3.set_title("Top 10 Rain Districts")
-            ax3.invert_yaxis()
-
-            st.pyplot(fig3)
-
-            rain_only = df[df["Score"] > 0]
-
-            fig4, ax4 = plt.subplots(figsize=(10, 5))
-
-            for d in rain_only["District"].unique():
-                sub = rain_only[rain_only["District"] == d]
-                ax4.plot(sub["Frame"], sub["Score"], label=d)
-
-            ax4.set_title("Rain Trend by District Name")
-            ax4.set_xlabel("Frame")
-            ax4.set_ylabel("Score")
-
-            # ถ้าเขตเยอะ → ไม่ต้อง show legend
-            # ax4.legend()
-
-            st.pyplot(fig4)
-    with st.status("🌧️ Generate Cpation data", expanded=True) as status:
-         
-         with st.spinner("กำลังประมวลผล..."):
-
-            
-            st.write(map_df)
-
-            date_n = datetime.now()
-            data = {
-                'coverage': random.randint(10, 100),
-                # 'large_rain_district_name':['สาทร'],
-                # 'mid_rain_district_name':[],
-                # 'light_rain_district_name':[],
-                'large_rain_district_name':list(map_df[map_df['level'] == 'Large']['District']),
-                'mid_rain_district_name':list(map_df[map_df['level'] == 'Medium']['District']),
-                'light_rain_district_name':list(map_df[map_df['level'] == 'Light']['District']),
-                'tempurature':30,
-                'rh':66,
-                'day':date_n.day,
-                'month':date_n.month,
-                'year':date_n.year + 543,
-                'hour': date_n.hour,
-                'minute':date_n.minute,
-                'max_rain_name':map_df.loc[map_df['Score'].idxmax()]['District'],
-                'max_rain_level_value':round(map_df.loc[map_df['Score'].idxmax()]['Score'], 2)
-            }
-            data_caption = model_main.generate_caption(data, temperature=1.0, top_k=6)
-            data_caption = data_caption.replace(" ", '')
-            # Pattern matches floats (e.g., 5.50) or integers (e.g., 2, 99)
-
-
-            # \1 inserts the matched number, surrounded by spaces
-            data_caption = re.sub(r"(\d+\.\d+|\d+)", r" \1 ", data_caption)
-
-            # Clean up any accidental double spaces created by the operation
-            data_caption = re.sub(r" +", " ", data_caption).strip()
-
-            data_caption = data_caption.replace("/", " / ")
-            data_caption = data_caption.replace(",", ", ")
-            # Output: "The pric
-            print(data_caption)
-            st.write(data_caption)
-    # st.subheader("📊 Raw Data")
-    # st.dataframe(rain_intensity["raw"])
-
-    # st.subheader("🌧️ Rain Areas")
-    # st.dataframe(result["raining"])
-
-    # st.subheader("📈 Trend")
-    # st.dataframe(result["trend"])
-
-    # st.subheader("🌡️ Intensity")
-    # st.dataframe(result["intensity"])
-    
+        st.subheader("📊 Radar Information")
+        descibe_coverage_mask, rain_data_debug = st.columns(2)
+        st.metric("🧭 Coverage", f"{average_coverage:.2f}%")
+        with descibe_coverage_mask:
+            st.image(rgb, caption="RGB",  use_container_width=True)
+            st.image(mask_vis, caption="Mask", use_container_width=True)
+            st.image(cropped, caption="Cropped", use_container_width=True)
+        with rain_data_debug:
+            st.image(rain_vis, caption="Rain Visualization", use_container_width=True)
+            st.image(highlight, caption="Highlight", use_container_width=True)
+            st.image(plot_img, caption="plot_img", use_container_width=True)
+        
+        st.success(f"Done!")
