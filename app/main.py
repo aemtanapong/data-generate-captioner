@@ -123,8 +123,9 @@ if uploaded_file is not None:
         rgb, mask_vis ,cropped, rain_vis, highlight, plot_img, average_coverage = data_coverage.get_data(uploaded_file)
         print("data")
         st.subheader("📊 Radar Information")
-        descibe_coverage_mask, rain_data_debug = st.columns(2)
         st.metric("🧭 Coverage", f"{average_coverage:.2f}%")
+        descibe_coverage_mask, rain_data_debug = st.columns(2)
+        
         with descibe_coverage_mask:
             st.image(rgb, caption="RGB",  use_container_width=True)
             st.image(mask_vis, caption="Mask", use_container_width=True)
