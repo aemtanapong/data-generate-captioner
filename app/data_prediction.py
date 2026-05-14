@@ -54,7 +54,7 @@ pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ต�
 shapefile_path = 'mapdata/Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
 threshold = 60
 import io
-import IPython.display as pyn
+# import IPython.display as pyn
 import imageio.v2 as imageio
 
 def create_in_memory_gif(frames_4d_array, fps=10):
@@ -596,10 +596,10 @@ def get_data(GIF_PATH):
     if plot_frames:
         print("Creating in-memory GIF...")
         in_memory_gif_bytes = create_in_memory_gif(np.array(plot_frames), fps=5)
-        if in_memory_gif_bytes:
-            pyn.display(pyn.Image(data=in_memory_gif_bytes))
-        else:
-            print("Failed to create in-memory GIF.")
+        # if in_memory_gif_bytes:
+        #     pyn.display(pyn.Image(data=in_memory_gif_bytes))
+        # else:
+        #     print("Failed to create in-memory GIF.")
     else:
         print("No plot frames were generated.")
 
@@ -1141,9 +1141,9 @@ def get_data(GIF_PATH):
         gif_frames_np,
         fps=2
     )
-    if gif_prediction:
-            pyn.display(pyn.Image(data=gif_prediction))
-    else:
-            print("Failed to create in-memory GIF.")
+    # if gif_prediction:
+    #         pyn.display(pyn.Image(data=gif_prediction))
+    # else:
+    #         print("Failed to create in-memory GIF.")
     print("GIF created in memory")
     return in_memory_gif_bytes, (max_coverage_value, avg_coverage_value, coverage_p50), gif_prediction
