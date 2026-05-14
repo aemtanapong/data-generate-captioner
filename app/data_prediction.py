@@ -335,7 +335,7 @@ def process_radar_animation_and_extract_district_values(
             })
 
     return pd.DataFrame(df_rows)
-def get_data(GIF_PATH):
+def get_data(GIF_PATH, degree_value):
     gif_file = io.BytesIO(GIF_PATH)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
         gif_path=gif_file,
@@ -735,7 +735,7 @@ def get_data(GIF_PATH):
 
     # Input your desired simulation parameters here
     n_frame = 13
-    new_simulated_direction_degrees = 90  # Example: 90 degrees for East
+    new_simulated_direction_degrees = degree_value  # Example: 90 degrees for East
     new_nowcast_minutes_ahead = 30      # Example: 30 minutes ahead
 
     print(f"Simulating nowcast with direction: {new_simulated_direction_degrees} degrees (0=North, 90=East) and {new_nowcast_minutes_ahead} minutes ahead.")
@@ -796,10 +796,9 @@ def get_data(GIF_PATH):
         # Calculate projected distance based on the existing speed
         proj_nowcast_distance_meters = speed_meters_per_minute * current_nowcast_minutes_ahead
 
-        # Convert new_simulated_direction_degrees (0=North, 90=East, increases clockwise)
-        # to radians for trigonometric functions (0=East, increases counter-clockwise)
-        # (90 - direction) maps North=0 to Math_Y_axis=90, East=90 to Math_X_axis=0
-        simulated_angle_rad = np.deg2rad(90 - new_simulated_direction_degrees)
+        # Convert new_simulated_direction_degrees (0=East, 90=North, increases counter-clockwise)
+        # to radians for trigonometric functions
+        simulated_angle_rad = np.deg2rad(new_simulated_direction_degrees)
 
         # Calculate projected displacement vector components in meters
         # east_component (delta_x) corresponds to Math X-axis (cos)
@@ -989,35 +988,22 @@ def get_data(GIF_PATH):
 
         if movement_magnitude > 0:
 
-            arrow_display_length = (
-                0.05 * np.sqrt(ax.get_xlim()[1] - ax.get_xlim()[0])
-            )
+            arrow_display_length = 0.05 * np.sqrt(ax.get_xlim()[1] - ax.get_xlim()[0]) # A percentage of plot width
 
-            angle_rad_for_arrow = np.deg2rad(
-                90 - new_simulated_direction_degrees
-            )
+            # Convert direction (0=East, 90=North, increases counter-clockwise) to radians
+            angle_rad_for_arrow = np.deg2rad(new_simulated_direction_degrees)
 
-            arrow_component_x = (
-                arrow_display_length * np.cos(angle_rad_for_arrow)
-            )
+            # Calculate arrow components based on overall calculated direction
+            arrow_component_x = arrow_display_length * np.cos(angle_rad_for_arrow)
+            arrow_component_y = arrow_display_length * np.sin(angle_rad_for_arrow)
 
-            arrow_component_y = (
-                arrow_display_length * np.sin(angle_rad_for_arrow)
-            )
-
-            ax.arrow(
-                proj_geo_x_frame - arrow_component_x,
-                proj_geo_y_frame - arrow_component_y,
-                arrow_component_x,
-                arrow_component_y,
-                head_width=2000,
-                head_length=3000,
-                fc='magenta',
-                ec='magenta',
-                linewidth=2,
-                zorder=6,
-                length_includes_head=True
-            )
+            # Draw arrow originating from projected center, pointing in the direction of movement
+            ax.arrow(proj_geo_x_frame - arrow_component_x,
+                    proj_geo_y_frame - arrow_component_y,
+                    arrow_component_x,
+                    arrow_component_y,
+                    head_width=2000, head_length=3000, fc='magenta', ec='magenta',
+                    linewidth=2, zorder=6, length_includes_head=True)
 
             speed_text = f"Speed: {speed_km_per_hour:.1f} km/h"
             direction_text = (

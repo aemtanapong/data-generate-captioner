@@ -354,8 +354,8 @@ if uploaded_file is not None:
 
     if module_prediction_data:
         with st.status("🚀 Prediction", expanded=True) as status:
-            print("Prediction")
-            image, (max_coverage_value, average_coverage_value, coverage_percentile_value), gif_prediction = data_prediction.get_data(gif_bytes)
+            print(f"Prediction ({move_caption_data[0]})")
+            image, (max_coverage_value, average_coverage_value, coverage_percentile_value), gif_prediction = data_prediction.get_data(gif_bytes, move_caption_data[0])
             st.subheader("📊 Radar Information")
             average_coverage, maxmimum_coverage, coverage_percentile = st.columns(3)
             with average_coverage:
