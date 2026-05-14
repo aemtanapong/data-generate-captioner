@@ -260,6 +260,14 @@ def get_data(GIF_PATH):
 
     regress_line = slope * frame_ids + intercept
 
+    # Interpret the trend
+    if slope > 0.05:
+        trend = "increasing"
+    elif slope < -0.05:
+        trend = "decreasing"
+    else:
+        trend = "relatively constant"
+
     # =========================
     # PLOT
     # =========================
@@ -295,5 +303,6 @@ def get_data(GIF_PATH):
     plt.close(fig)
     
     average_coverage = np.mean(coverage_values)
+    data_coverage_and_trend_rain = average_coverage, trend
         # plot_img is numpy image
-    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg, average_coverage
+    return rgb,  mask_vis , cropped[ymin:ymax, xmin:xmax], rain_vis[ymin:ymax, xmin:xmax], highlight[ymin:ymax, xmin:xmax], plotimg, data_coverage_and_trend_rain
