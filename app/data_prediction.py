@@ -199,7 +199,38 @@ def extract_radar_frame(img):
   return result
 # Assuming min_pooling, max_pooling, extract_radar_frame, calculate_district_metrics
 # are already defined in previous cells or accessible in the global scope.
+def get_rain_data(score_dict, n_frame):
 
+    max_score = sum(range(1, n_frame + 1))
+
+    result = {
+        "🚨 ฝนต่อเนื่อง": [],
+        "🌧️ ฝนเริ่มเคลื่อนเข้า": [],
+        "👀 เฝ้าระวัง": [],
+        "☀️ ไม่มีฝน": []
+    }
+
+    for district, score in score_dict.items():
+
+        normalized_score = score / max_score
+
+        if normalized_score >= 0.80:
+
+            result["🚨 ฝนต่อเนื่อง"].append(district)
+
+        elif normalized_score >= 0.40:
+
+            result["🌧️ ฝนเริ่มเคลื่อนเข้า"].append(district)
+
+        elif normalized_score > 0:
+
+            result["👀 เฝ้าระวัง"].append(district)
+
+        else:
+
+            result["☀️ ไม่มีฝน"].append(district)
+
+    return result
 def process_radar_animation_and_extract_district_values(
     gif_path,
     radar_x,
@@ -335,8 +366,9 @@ def process_radar_animation_and_extract_district_values(
             })
 
     return pd.DataFrame(df_rows)
-def get_data(GIF_PATH, degree_value):
+def get_data(GIF_PATH, degree_value, update = None):
     gif_file = io.BytesIO(GIF_PATH)
+    if update : update("ประมวลภาพ radar",0.1)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
         gif_path=gif_file,
         radar_x=radar_x,
@@ -353,7 +385,8 @@ def get_data(GIF_PATH, degree_value):
     # -----------------------------
     # READ GIF
     # -----------------------------
-    
+
+    if update : update("อ่านภาพ radar",0.3)
     with Image.open(gif_file) as img:
         for frame in range(img.n_frames):
             img.seek(frame)
@@ -429,7 +462,7 @@ def get_data(GIF_PATH, degree_value):
     overall_coverage_per_frame = []
 
     print("Calculating overall radar coverage percentage for each frame...")
-
+    if update : update("กำลังคำนวนฝน radar",0.5)
     for i, processed_rgb_frame in enumerate(frames):
         # Convert the RGB frame to RGBA, making black pixels transparent
         h, w, _ = processed_rgb_frame.shape
@@ -491,7 +524,7 @@ def get_data(GIF_PATH, degree_value):
         if 'Sarabun' in font_path or 'Garuda' in font_path or 'Laksaman' in font_path: # Look for common Thai fonts
             thai_font_path = font_path
             break
-
+    
     if thai_font_path:
         fm.fontManager.addfont(thai_font_path)
         plt.rcParams['font.family'] = fm.FontProperties(fname=thai_font_path).get_name()
@@ -503,7 +536,7 @@ def get_data(GIF_PATH, degree_value):
 
 
     print(f"Generating plots for {len(frames)} radar frames...")
-
+    if update : update("Generating plots for {len(frames)} radar frames...",0.6)
     # Ensure district_col is defined (e.g., 'ADM3_EN' or 'DISTRICT_T')
     # This variable might be defined globally, but it's safer to ensure it here.
     district_col = 'ADM3_EN' if 'ADM3_EN' in gdf.columns else 'DISTRICT_T'
@@ -589,7 +622,7 @@ def get_data(GIF_PATH, degree_value):
         image_from_plot = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(fig.canvas.get_width_height()[::-1] + (4,))
         plot_frames.append(image_from_plot)
         plt.close(fig) # Close the figure to prevent it from displaying and to free up memory
-
+    if update : update("Finished generating all radar plots.",0.7)
     print("Finished generating all radar plots.")
 
     # Create and display the in-memory GIF
@@ -620,7 +653,7 @@ def get_data(GIF_PATH, degree_value):
     # Ensure 'frames' list of processed RGB radar images is available
     # Ensure 'pixel_resolution' (meters per pixel) is available
     # Ensure 'img_width', 'img_height', 'img_extent' are available
-
+    
     if len(frames) < 2:
         print("Need at least two frames to calculate speed and direction for nowcasting.")
     else:
@@ -734,7 +767,7 @@ def get_data(GIF_PATH, degree_value):
             print("Could not detect sufficient radar activity in the last two frames to calculate movement or project nowcast.")
 
     # Input your desired simulation parameters here
-    n_frame = 13
+    n_frame = 14
     new_simulated_direction_degrees = degree_value  # Example: 90 degrees for East
     new_nowcast_minutes_ahead = 30      # Example: 30 minutes ahead
 
@@ -877,7 +910,7 @@ def get_data(GIF_PATH, degree_value):
 
     # Ensure district_col is defined (e.g., 'ADM3_EN' or 'DISTRICT_T')
     district_col = 'ADM3_EN' if 'ADM3_EN' in gdf.columns else 'DISTRICT_T'
-
+    if update : update("Visualizing {n_frame} nowcast frame",0.9)
     print(f"Visualizing {n_frame} nowcast frames with movement direction...")
 
     gif_frames = []
@@ -885,17 +918,23 @@ def get_data(GIF_PATH, degree_value):
     # =========================================================
     # LOOP
     # =========================================================
-    for i in range(n_frame):
 
-        nowcast_frame_num = i + 1
-        current_nowcast_minutes_ahead = (i + 1) * nowcast_interval_minutes
 
-        nowcast_rgba_frame = all_nowcast_rgba_frames[i]
+    nowcast_coverage = []
+    num_district_data = {}
 
+    for frame_index in range(n_frame):
+
+        nowcast_frame_num = frame_index + 1
+        current_nowcast_minutes_ahead = (frame_index + 1) * nowcast_interval_minutes
+
+        nowcast_rgba_frame = all_nowcast_rgba_frames[frame_index]
+        alpha_channel = nowcast_rgba_frame[:, :, 3]
         current_frame_nowcast_df = df_nowcast_output[
             df_nowcast_output['Nowcast_Frame_Num'] == nowcast_frame_num
         ]
-
+        left, right, bottom, top = img_extent
+        transform = rasterio.transform.from_bounds(left, bottom, right, top, w, h)
         nowcast_raining_districts_in_frame = current_frame_nowcast_df[
             (current_frame_nowcast_df['Coverage'] > 0) |
             (current_frame_nowcast_df['Score'] > 0)
@@ -903,7 +942,24 @@ def get_data(GIF_PATH, degree_value):
 
         avg_coverage_current_frame = current_frame_nowcast_df['Coverage'].mean()
         avg_score_current_frame = current_frame_nowcast_df['Score'].mean()
+        
+        shapefile_mask = rasterio.features.rasterize(
+            [(entire_shapefile_geometry, 1)],
+            out_shape=(h, w),
+            transform=transform,
+            fill=0,
+            dtype=np.uint8
+        ).astype(bool)
 
+        # Identify radar pixels (where alpha > 0) within the entire shapefile mask
+        radar_pixels_in_shapefile = np.sum(shapefile_mask & (alpha_channel > 0))
+        total_shapefile_pixels = np.sum(shapefile_mask)
+
+        overall_percentage = 0.0
+        if total_shapefile_pixels > 0:
+            overall_percentage = (radar_pixels_in_shapefile / total_shapefile_pixels) * 100
+            print("nowcast data ",overall_percentage, radar_pixels_in_shapefile, total_shapefile_pixels)
+            nowcast_coverage.append(overall_percentage)
         # =====================================================
         # FIGURE
         # =====================================================
@@ -1114,10 +1170,26 @@ def get_data(GIF_PATH, degree_value):
 
         buf.close()
         plt.close(fig)
-        print(f"--- Metrics for Nowcast Frame {nowcast_frame_num} ({current_nowcast_minutes_ahead} min ahead) ---")
-        print(f"  Average Radar Coverage: {avg_coverage_current_frame:.2f}%")
-        print(f"  Average Radar Score: {avg_score_current_frame:.2f}")
+        # print(f"--- Metrics for Nowcast Frame {nowcast_frame_num} ({current_nowcast_minutes_ahead:.0f} min ahead) ---")
+        print(f"--- Metrics for Nowcast Frame {nowcast_frame_num} ")
+        # print(f"  Average Radar Coverage: {avg_coverage_current_frame:.2f}%")
+        # print(f"  Average Radar Score: {avg_score_current_frame:.2f}")
         print(f"  Districts with significant radar activity: {nowcast_raining_districts_in_frame}\n")
+
+        for district in nowcast_raining_districts_in_frame:
+
+            num_district_data[district] = (
+                num_district_data.get(district, 0) + frame_index
+            )
+    print(nowcast_coverage)
+    # max
+    max_n_coverage_value = max(nowcast_coverage)
+
+    # average
+    avg_n_coverage_value = np.mean(nowcast_coverage)
+
+    # 50 percentile (median)
+    coverage_n_p50 = np.percentile(nowcast_coverage, 50)
     # =========================================================
     # CREATE GIF IN MEMORY
     # =========================================================
@@ -1132,4 +1204,7 @@ def get_data(GIF_PATH, degree_value):
     # else:
     #         print("Failed to create in-memory GIF.")
     print("GIF created in memory")
-    return in_memory_gif_bytes, (max_coverage_value, avg_coverage_value, coverage_p50), gif_prediction
+    print(num_district_data)
+    num_district_data = get_rain_data(num_district_data, n_frame)
+    if update : update("loading ... ",1.0)
+    return in_memory_gif_bytes, (max_coverage_value, avg_coverage_value, coverage_p50), gif_prediction, (max_n_coverage_value, avg_n_coverage_value, coverage_n_p50), num_district_data

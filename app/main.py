@@ -18,11 +18,122 @@ import re
 import data_coverage
 import data_district_rain
 import data_prediction
+import uuid
 plt.rcParams['font.family'] = 'Tahoma'
 
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
+def render_district_grid_html(
+    title,
+    districts,
+    color1,
+    color2,
+    emoji="🌧️"
+):
 
+    # =====================================================
+    # UNIQUE CLASS กัน style ทับกันหลาย component
+    # =====================================================
+    uid = str(uuid.uuid4()).replace("-", "")
+
+    container_class = f"rain_container_{uid}"
+    title_class = f"rain_title_{uid}"
+    grid_class = f"district_grid_{uid}"
+    card_class = f"district_card_{uid}"
+
+    if not districts:
+        districts = ["ไม่มีข้อมูล"]
+
+    cards_html = ""
+
+    for district in districts:
+
+        cards_html += f"""
+        <div class="{card_class}">
+            {district}
+        </div>
+        """
+
+    html = f"""
+    <style>
+
+    .{container_class} {{
+        padding:20px;
+        border-radius:24px;
+
+        background:linear-gradient(
+            135deg,
+            {color1},
+            {color2}
+        );
+
+        margin-bottom:24px;
+
+        box-shadow:0 8px 24px rgba(0,0,0,0.18);
+    }}
+
+    .{title_class} {{
+        color:white;
+        font-size:28px;
+        font-weight:800;
+        margin-bottom:18px;
+    }}
+
+    .{grid_class} {{
+        display:grid;
+
+        grid-template-columns:
+            repeat(auto-fill,minmax(180px,1fr));
+
+        gap:14px;
+    }}
+
+    .{card_class} {{
+
+        background:rgba(255,255,255,0.15);
+
+        border:1px solid rgba(255,255,255,0.18);
+
+        backdrop-filter:blur(6px);
+
+        padding:14px;
+
+        border-radius:16px;
+
+        color:white;
+
+        font-size:17px;
+
+        font-weight:700;
+
+        text-align:center;
+
+        transition:all 0.2s ease;
+    }}
+
+    .{card_class}:hover {{
+
+        transform:translateY(-3px);
+
+        background:rgba(255,255,255,0.22);
+    }}
+
+    </style>
+
+    <div class="{container_class}">
+
+        <div class="{title_class}">
+            {emoji} {title}
+        </div>
+
+        <div class="{grid_class}">
+            {cards_html}
+        </div>
+
+    </div>
+    """
+
+    st.html(html)
 with st.status("generate caption", expanded=True) as n:
     uploaded_file = st.file_uploader("Upload Radar GIF", type=["gif", "webp"])
     # =========================================================
@@ -44,6 +155,9 @@ def ui_update(text, p):
     progress.progress(p)
 def rain_district_name_ui_update(text, p):
     rain_district_name_status.write(text)
+    progress.progress(p)
+def rain_ui_update(text, p):
+    rain_status.write(text)
     progress.progress(p)
 def show_gif(gif_bytes, width=500):
     b64 = base64.b64encode(gif_bytes).decode()
@@ -353,19 +467,79 @@ if uploaded_file is not None:
     
 
     if module_prediction_data:
-        with st.status("🚀 Prediction", expanded=True) as status:
-            print(f"Prediction ({move_caption_data[0]})")
-            image, (max_coverage_value, average_coverage_value, coverage_percentile_value), gif_prediction = data_prediction.get_data(gif_bytes, move_caption_data[0])
-            st.subheader("📊 Radar Information")
-            average_coverage, maxmimum_coverage, coverage_percentile = st.columns(3)
-            with average_coverage:
-                st.metric("📐 Average Coverage : ", f"{average_coverage_value:.2f}")
-            with maxmimum_coverage:
-                st.metric("📐 Maximum Coverage : ", f"{max_coverage_value:.2f}")
-            with coverage_percentile:
-                st.metric("📐 Maximum Coverage : ", f"{coverage_percentile_value:.2f}")
-                
-            # st.write(coverage_value)
-            st.image(image)
+        progress = st.progress(0)
+        with st.status("🚀 Prediction", expanded=True) as rain_status:
+            with st.spinner("กำลังประมวลผล..."):
+                print(f"Prediction ({move_caption_data[0]})")
+                image, (max_coverage_value, average_coverage_value, coverage_percentile_value), gif_prediction, (max_n_coverage_value, average_n_coverage_value, coverage_n_percentile_value), num_district_data = data_prediction.get_data(gif_bytes, move_caption_data[0], update = rain_ui_update)
+                st.subheader("🌧️ Current Radar Information")
+                c1, c2, c3 = st.columns(3)
 
-            st.image(gif_prediction)
+                c1.metric(
+                    "📐 Avg Coverage",
+                    f"{average_coverage_value:.1f}%"
+                )
+
+                c2.metric(
+                    "📈 Peak Coverage",
+                    f"{max_coverage_value:.1f}%"
+                )
+
+                c3.metric(
+                    "⚡ Coverage P90",
+                    f"{coverage_percentile_value:.1f}%"
+                )
+                    
+                # st.write(coverage_value)
+                st.image(image)
+
+                st.subheader("📊 Prediction Radar Information")
+                average_coverage, maxmimum_coverage, coverage_percentile = st.columns(3)
+                with average_coverage:
+                    st.metric("📐 Average Coverage : ", f"{max_n_coverage_value:.1f}%")
+                with maxmimum_coverage:
+                    st.metric("📐 Maximum Coverage : ", f"{average_n_coverage_value:.1f}%")
+                with coverage_percentile:
+                    st.metric("📐 Maximum Coverage : ", f"{coverage_n_percentile_value:.1f}%")
+                st.image(gif_prediction)
+
+                persistent_n = len(num_district_data["🚨 ฝนต่อเนื่อง"])
+                incoming_n = len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])
+                watch_n = len(num_district_data["👀 เฝ้าระวัง"])
+
+                st.subheader("🚨 Rain Notify")
+
+                a1, a2, a3 = st.columns(3)
+
+                a1.metric("🚨 Persistent", persistent_n)
+                a2.metric("🌧️ Incoming", incoming_n)
+                a3.metric("👀 Watch", watch_n)
+
+                top_districts = sorted(
+                    num_district_data.items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )[:5]
+                st.subheader("📍 High Risk Districts")
+
+                render_district_grid_html(
+                    title="ฝนต่อเนื่อง",
+                    districts=num_district_data["🚨 ฝนต่อเนื่อง"],
+                    color1="#ff5252",
+                    color2="#b71c1c",
+                    emoji="🚨"
+                )
+                render_district_grid_html(
+                    title="ฝนเริ่มเคลื่อนเข้า",
+                    districts=num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"],
+                    color1="#ffb74d",
+                    color2="#ef6c00",
+                    emoji="🌧️"
+                )
+                render_district_grid_html(
+                    title="เฝ้าระวัง",
+                    districts=num_district_data["👀 เฝ้าระวัง"],
+                    color1="#64b5f6",
+                    color2="#1565c0",
+                    emoji="👀"
+                )
