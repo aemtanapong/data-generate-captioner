@@ -20,7 +20,7 @@ district_summary = {}
 GIF_PATH = "./example/n006.gif"
 SHP_PATH = "./mapdata/Export_Output.shp"
 OUTPUT_DIR = "/content/rain_intensity_debug"
-DEBUG = False
+DEBUG = True
 THRESHOLD_COLOR = 15
 # os.makedirs(OUTPUT_DIR, exist_ok=True)
 
