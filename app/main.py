@@ -601,9 +601,9 @@ if uploaded_file is not None:
                     if len(num_district_data["🚨 ฝนต่อเนื่อง"]):
                         data_caption.append(f"🔄พบฝนตกต่อเนื่องในเขต{', '.join(num_district_data['🚨 ฝนต่อเนื่อง'])} ของกรุงเทพมหานคร  \n")
                     if len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"]):
-                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])}  \n")
+                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data['🌧️ ฝนเริ่มเคลื่อนเข้า'])}  \n")
                     if len(num_district_data["👀 เฝ้าระวัง"]):
-                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data["👀 เฝ้าระวัง"])}  \n\n")
+                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data['👀 เฝ้าระวัง'])}  \n\n")
 
                     data_caption.append(f"⛈️ ท่านสามารถติดตามคาดการณ์ฝนล่วงหน้า 3 ชั่วโมงได้ที่  \n")
                     data_caption.append(f"👉 https://dds.bangkok.go.th/nowcast/  \n\n")
