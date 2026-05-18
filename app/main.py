@@ -16,7 +16,7 @@ import random
 from datetime import datetime
 import re
 import data_coverage
-import data_district_rain
+import data_district_rainv3
 import data_prediction
 import uuid
 plt.rcParams['font.family'] = 'Tahoma'
@@ -287,7 +287,7 @@ if uploaded_file is not None:
         progress = st.progress(0)
         with st.status("🌧️ Rain District Analysis", expanded=True) as rain_district_name_status:
             with st.spinner("กำลังประมวลผล..."):
-                plot_img, rain_district_data = data_district_rain.get_data(gif_bytes, update = rain_district_name_ui_update)
+                plot_img, rain_district_data = data_district_rainv3.get_data(gif_bytes, update = rain_district_name_ui_update)
 
             # =========================
             # HEADER
