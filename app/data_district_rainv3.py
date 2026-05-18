@@ -15,6 +15,8 @@ import matplotlib.font_manager as fm
 import os
 from matplotlib.patches import Patch
 import io
+
+DISTRICT_DEBUG = False
 def create_in_memory_gif(frames_4d_array, fps=10):
     """
     Creates an animated GIF from a 4D NumPy array (num_frames, height, width, channels)
@@ -621,11 +623,11 @@ def get_data(GIF_PATH, update = None):
                 raining_districts_in_frame.append(
                     district_name
                 )
-
-            print(
-                district_name,
-                f"Coverage = {coverage:.2f}%"
-            )
+            if DISTRICT_DEBUG:
+                print(
+                    district_name,
+                    f"Coverage = {coverage:.2f}%"
+                )
             # =====================================================
             # GET RGB PIXELS INSIDE DISTRICT
             # =====================================================
@@ -681,11 +683,11 @@ def get_data(GIF_PATH, update = None):
                 average_intensity = np.mean(
                     pixel_dbz_values
                 )
-
-            print(
-                district_name,
-                f"Average Intensity = {average_intensity:.2f} dBZ"
-            )
+            if DISTRICT_DEBUG:
+                print(
+                    district_name,
+                    f"Average Intensity = {average_intensity:.2f} dBZ"
+                )
             # =====================================================
             # NORMALIZE COVERAGE
             # =====================================================
@@ -742,11 +744,12 @@ def get_data(GIF_PATH, update = None):
                 /
                 max_possible_score
             ) * 100
-            print(
-                district_name,
-                f"Rain Severity Score = "
-                f"{rain_severity_score:.2f}"
-            )
+            if DISTRICT_DEBUG:
+                print(
+                    district_name,
+                    f"Rain Severity Score = "
+                    f"{rain_severity_score:.2f}"
+                )
             if district_name not in rain_persistance:
                 rain_persistance[district_name] = 0.0
             rain_persistance[district_name] += i * rain_severity_score

@@ -18,6 +18,7 @@ import re
 import data_coverage
 import data_district_rainv3
 import data_prediction
+from datetime import datetime
 import uuid
 plt.rcParams['font.family'] = 'Tahoma'
 
@@ -315,6 +316,12 @@ if uploaded_file is not None:
             c4.metric("🔵 None", none_n)
             st.divider()
 
+            rain_district_number, coverage_district_grid = st.columns(2)
+            rain_district_number.metric("📊 เขตที่มีฝน", heavy_n + medium_n + light_n)
+            coverage_number_text = (heavy_n + medium_n + light_n) / 50.0 * 100
+            coverage_district_grid.metric("🧭 Coverage District Grid", f"{coverage_number_text}%")
+            st.divider()
+
             # =========================
             # TABS
             # =========================
@@ -543,3 +550,85 @@ if uploaded_file is not None:
                     color2="#1565c0",
                     emoji="👀"
                 )
+        if module_direction_data and module_coverage_data and module_district_data and module_prediction_data:
+            progress = st.progress(0)
+            with st.status("🌧️ Caption ", expanded=True) as caption_data:
+                data_caption = []
+                
+
+                thai_months = [
+                    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+                    "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+                    "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+                ]
+
+                now = datetime.now()
+
+                # ปัดนาทีให้เป็นช่วงละ 5 นาที
+                rounded_minute = (now.minute // 5) * 5
+
+                thai_year = now.year + 543
+                thai_month = thai_months[now.month - 1]
+
+                datetime_text = (
+                    f"🗓️วันที่ {now.day} "
+                    f"{thai_month} "
+                    f"{thai_year} "
+                    f"เวลา {now.hour:02d}.{rounded_minute:02d} น."
+                )
+
+                
+
+                datetime_text = (
+                    f"🗓️วันที่ {now.day} "
+                    f"{thai_month} "
+                    f"{thai_year} "
+                    f"เวลา {now.hour:02d}.{now.minute:02d} น."
+                )
+                data_caption.append(datetime_text + "  \n")
+                if heavy_n + medium_n + light_n > 0:
+                    
+                    data_caption.append(f"☔️กรุงเทพมหานครและปริมณฑล : มีฝนฟ้าคะนอง ร้อยละ {coverage_number_text:.0f} ของพื้นที่  \n")
+                    if len(rain_district_data.get("heavy", [])):
+                        data_caption.append(f"⛈️ฝนหนักเขต{', '.join(rain_district_data.get("light", []))}  \n")
+                    if len(rain_district_data.get("medium", [])):
+                        data_caption.append(f"🌧️ฝนปานกลางเขต{', '.join(rain_district_data.get("light", []))}  \n")
+                    if len(rain_district_data.get("light", [])):
+                        data_caption.append(f"🌦️ฝนเล็กน้อยเขต{', '.join(rain_district_data.get("light", []))}  \n")
+
+                    data_caption.append(f"➡️เคลื่อนตัวทิศ{move_caption_data[1]} แนวโน้ม{trend_text}  \n\n")
+
+                    if len(num_district_data["🚨 ฝนต่อเนื่อง"]):
+                        data_caption.append(f"🔄พบฝนตกต่อเนื่องในเขต{', '.join(num_district_data["🚨 ฝนต่อเนื่อง"])} ของกรุงเทพมหานคร  \n")
+                    if len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"]):
+                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])}  \n")
+                    if len(num_district_data["👀 เฝ้าระวัง"]):
+                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data["👀 เฝ้าระวัง"])}  \n\n")
+
+                    data_caption.append(f"⛈️ ท่านสามารถติดตามคาดการณ์ฝนล่วงหน้า 3 ชั่วโมงได้ที่  \n")
+                    data_caption.append(f"👉 https://dds.bangkok.go.th/nowcast/  \n\n")
+                    
+                    data_caption.append("🧐 เช็กสภาพอากาศกทม. แบบเรียลไทม์ได้ที่  \n")
+                    data_caption.append("📱facebook ศูนย์ป้องกันน้ำท่วมกรุงเทพมหานคร  \n")
+                    data_caption.append("👉 https://www.facebook.com/bkk.best?mibextid=LQQJ4d  \n\n")
+
+                    data_caption.append("📡 สถานีเรดาร์หนองจอก  \n")
+                    data_caption.append("👉 https://weather.bangkok.go.th/Radar/RadarAnimation.aspx  \n\n")
+
+                    data_caption.append("📡 สถานีเรดาร์หนองแขม  \n")
+                    data_caption.append("👉 https://weather.bangkok.go.th/Radar/RadarAnimationNk.aspx  \n\n")
+                    st.write("".join(data_caption))
+                else:
+                    tempurature = 30
+                    r_humidity_data = 79
+                    data_caption.append(f"☁️ พื้นที่ กทม. ไม่พบกลุ่มฝน  \n")
+                    data_caption.append(f"🌡️ อุณหภูมิที่สำนักการระบายน้ำ {tempurature} องศาเซลเซียส  \n")
+                    data_caption.append(f"💧 ความชื้นสัมพัทธ์ {r_humidity_data}%  \n\n")
+
+                    if len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"]):
+                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])}  \n")
+                    if len(num_district_data["👀 เฝ้าระวัง"]):
+                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data["👀 เฝ้าระวัง"])}  \n\n")
+                        
+                    st.write("".join(data_caption))
+
