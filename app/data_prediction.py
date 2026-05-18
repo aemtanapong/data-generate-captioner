@@ -181,7 +181,7 @@ def min_pooling(img, ksize=3):
 def max_pooling(img, ksize=3):
     kernel = np.ones((ksize, ksize), np.uint8)
     return cv2.dilate(img, kernel)
-def extract_radar_frame(img):
+def extract_radar_frame(img, threshold = 15):
   # reshape image
   h, w, _ = img.shape
   pixels = img.reshape(-1,3)
