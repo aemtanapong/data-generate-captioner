@@ -599,7 +599,7 @@ if uploaded_file is not None:
                     data_caption.append(f"➡️เคลื่อนตัวทิศ{move_caption_data[1]} แนวโน้ม{trend_text}  \n\n")
 
                     if len(num_district_data["🚨 ฝนต่อเนื่อง"]):
-                        data_caption.append(f"🔄พบฝนตกต่อเนื่องในเขต{', '.join(num_district_data["🚨 ฝนต่อเนื่อง"])} ของกรุงเทพมหานคร  \n")
+                        data_caption.append(f"🔄พบฝนตกต่อเนื่องในเขต{', '.join(num_district_data['🚨 ฝนต่อเนื่อง'])} ของกรุงเทพมหานคร  \n")
                     if len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"]):
                         data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])}  \n")
                     if len(num_district_data["👀 เฝ้าระวัง"]):
