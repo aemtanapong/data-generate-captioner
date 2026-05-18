@@ -590,11 +590,11 @@ if uploaded_file is not None:
                     
                     data_caption.append(f"☔️กรุงเทพมหานครและปริมณฑล : มีฝนฟ้าคะนอง ร้อยละ {coverage_number_text:.0f} ของพื้นที่  \n")
                     if len(rain_district_data.get("heavy", [])):
-                        data_caption.append(f"⛈️ฝนหนักเขต{', '.join(rain_district_data.get("light", []))}  \n")
+                        data_caption.append(f"⛈️ฝนหนักเขต{', '.join(rain_district_data.get('heavy', []))}  \n")
                     if len(rain_district_data.get("medium", [])):
-                        data_caption.append(f"🌧️ฝนปานกลางเขต{', '.join(rain_district_data.get("light", []))}  \n")
+                        data_caption.append(f"🌧️ฝนปานกลางเขต{', '.join(rain_district_data.get('medium', []))}  \n")
                     if len(rain_district_data.get("light", [])):
-                        data_caption.append(f"🌦️ฝนเล็กน้อยเขต{', '.join(rain_district_data.get("light", []))}  \n")
+                        data_caption.append(f"🌦️ฝนเล็กน้อยเขต{', '.join(rain_district_data.get('light', []))}  \n")
 
                     data_caption.append(f"➡️เคลื่อนตัวทิศ{move_caption_data[1]} แนวโน้ม{trend_text}  \n\n")
 
