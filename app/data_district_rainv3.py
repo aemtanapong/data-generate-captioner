@@ -292,7 +292,7 @@ def process_radar_animation_and_extract_district_values(
 
     return pd.DataFrame(df_rows)
 # gif_path = "/content/drive/MyDrive/radar/radar (2).gif"
-gif_path = "./example/n006.gif"
+# gif_path = "./example/n006.gif"
 target_colors = np.array([
     [252, 252, 255], # 66.5
     [252, 219, 255], # 64.0
@@ -332,13 +332,14 @@ SHP_PATH = "./mapdata/Export_Output.shp" # ชื่อไฟล์ Shapefile �
 threshold = 60
 def get_data(GIF_PATH, update = None):
     if update: update("🌧️ กำลังโหลดข้อมูลเรดาร์ฝน...", 0.25)
+    gif_file = io.BytesIO(GIF_PATH)
     # =========================================================
     # LOAD DATA
     # =========================================================
     gdf = gpd.read_file(SHP_PATH)
     gif = imageio.mimread(GIF_PATH)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
-        gif_path=gif_path,
+        gif_path=gif_file,
         radar_x=radar_x,
         radar_y=radar_y,
         pixel_resolution=pixel_resolution,
@@ -391,7 +392,7 @@ def get_data(GIF_PATH, update = None):
     # -----------------------------
     # READ GIF
     # -----------------------------
-    with Image.open(gif_path) as img:
+    with Image.open(gif_file) as img:
         for frame in range(img.n_frames):
             img.seek(frame)
 
@@ -434,7 +435,7 @@ def get_data(GIF_PATH, update = None):
     else:
         # Fallback if 'frames' is not available or empty (should not happen if iTnYQGi2qYq9 ran)
         print("Warning: 'frames' variable not found or empty. Reading GIF directly for dimensions.")
-        with Image.open(gif_path) as im:
+        with Image.open(gif_file) as im:
             img_width, img_height = im.size
         print(f"img_width: {img_width}, img_height: {img_height} derived from original GIF.")
 
