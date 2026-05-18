@@ -21,7 +21,7 @@ import data_prediction
 from datetime import datetime
 import uuid
 plt.rcParams['font.family'] = 'Tahoma'
-
+from PIL import Image
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
 def render_district_grid_html(
@@ -135,6 +135,19 @@ def render_district_grid_html(
     """
 
     st.html(html)
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.image("app/rain/converted_gif/norain-001.gif", caption = "no rain 1")
+    st.image("app/rain/converted_gif/rain-001.gif", caption = "rain 1")
+with col2:
+    st.image("app/rain/converted_gif/norain-002.gif", caption = "no rain 2")
+    st.image("app/rain/converted_gif/rain-002.gif", caption = "rain 2")
+with col3:
+    st.image("app/rain/converted_gif/norain-003.gif", caption = "no rain 3")
+    st.image("app/rain/converted_gif/rain-003.gif", caption = "rain 3")
+
+# st.image(["app/rain/norain-001.gif", "app/rain/rain001.gif"])
 with st.status("generate caption", expanded=True) as n:
     uploaded_file = st.file_uploader("Upload Radar GIF", type=["gif", "webp"])
     # =========================================================
