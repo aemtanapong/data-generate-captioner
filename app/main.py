@@ -626,9 +626,9 @@ if uploaded_file is not None:
                     data_caption.append(f"💧 ความชื้นสัมพัทธ์ {r_humidity_data}%  \n\n")
 
                     if len(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"]):
-                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"])}  \n")
+                        data_caption.append(f"⛈️กลุ่มฝนกำลังเคลื่อนตัวเข้าสู่พื้นที่เขต{', '.join(num_district_data['🌧️ ฝนเริ่มเคลื่อนเข้า'])}  \n")
                     if len(num_district_data["👀 เฝ้าระวัง"]):
-                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data["👀 เฝ้าระวัง"])}  \n\n")
+                        data_caption.append(f"⚠️ควรเฝ้าระวังฝนตกสะสมในพื้นที่เขต{', '.join(num_district_data['👀 เฝ้าระวัง'])}  \n\n")
                         
                     st.write("".join(data_caption))
 
