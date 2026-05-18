@@ -592,12 +592,12 @@ if uploaded_file is not None:
 
                 
 
-                datetime_text = (
-                    f"🗓️วันที่ {now.day} "
-                    f"{thai_month} "
-                    f"{thai_year} "
-                    f"เวลา {now.hour:02d}.{now.minute:02d} น."
-                )
+                # datetime_text = (
+                #     f"🗓️วันที่ {now.day} "
+                #     f"{thai_month} "
+                #     f"{thai_year} "
+                #     f"เวลา {now.hour:02d}.{now.minute:02d} น."
+                # )
                 data_caption.append(datetime_text + "  \n")
                 if heavy_n + medium_n + light_n > 0:
                     
