@@ -122,7 +122,7 @@ def get_data(GIF_PATH, update = None):
         # FRAME OUTPUT DIR
         # =====================================================
         frame_dir = os.path.join(OUTPUT_DIR, f"frame_{frame_id:04d}")
-        os.makedirs(frame_dir, exist_ok=True)
+        # os.makedirs(frame_dir, exist_ok=True)
 
         # =====================================================
         # DISTRICT LOOP
