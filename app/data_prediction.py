@@ -462,7 +462,7 @@ def get_data(GIF_PATH, degree_value, update = None):
     overall_coverage_per_frame = []
 
     print("Calculating overall radar coverage percentage for each frame...")
-    if update : update("กำลังคำนวนฝน radar",0.5)
+    if update : update("🛰️ กำลังอ่านข้อมูลภาพเรดาร์...",0.5)
     for i, processed_rgb_frame in enumerate(frames):
         # Convert the RGB frame to RGBA, making black pixels transparent
         h, w, _ = processed_rgb_frame.shape
@@ -536,7 +536,7 @@ def get_data(GIF_PATH, degree_value, update = None):
 
 
     print(f"Generating plots for {len(frames)} radar frames...")
-    if update : update("Generating plots for {len(frames)} radar frames...",0.6)
+    if update : update("🌧️ กำลังคำนวณและวิเคราะห์ข้อมูลฝนจาก Radar...",0.6)
     # Ensure district_col is defined (e.g., 'ADM3_EN' or 'DISTRICT_T')
     # This variable might be defined globally, but it's safer to ensure it here.
     district_col = 'ADM3_EN' if 'ADM3_EN' in gdf.columns else 'DISTRICT_T'
@@ -622,7 +622,7 @@ def get_data(GIF_PATH, degree_value, update = None):
         image_from_plot = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(fig.canvas.get_width_height()[::-1] + (4,))
         plot_frames.append(image_from_plot)
         plt.close(fig) # Close the figure to prevent it from displaying and to free up memory
-    if update : update("Finished generating all radar plots.",0.7)
+    if update : update("🖼️ กำลังสร้างภาพเรดาร์ทั้งหมดกำลังโหลดข้อมูล...",0.7)
     print("Finished generating all radar plots.")
 
     # Create and display the in-memory GIF
@@ -915,7 +915,7 @@ def get_data(GIF_PATH, degree_value, update = None):
 
     # Ensure district_col is defined (e.g., 'ADM3_EN' or 'DISTRICT_T')
     district_col = 'ADM3_EN' if 'ADM3_EN' in gdf.columns else 'DISTRICT_T'
-    if update : update("Visualizing {n_frame} nowcast frame",0.9)
+    if update : update("📡 กำลังแสดงผล Nowcast ข้อมูลกำลังโหลด...",0.9)
     print(f"Visualizing {n_frame} nowcast frames with movement direction...")
 
     gif_frames = []
