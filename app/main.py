@@ -153,7 +153,7 @@ with st.status("generate caption", expanded=True) as n:
     # =========================================================
     # MODULE SELECTION UI
     # =========================================================
-    st.subheader("🧠 Select Analysis Modules")
+    # st.subheader("🧠 Select Analysis Modules")
 
     col1, col_3 = st.columns(2)
 
@@ -269,34 +269,35 @@ if uploaded_file is not None:
                 st.success("Done!")
     if module_coverage_data:
         with st.status("Coverage คำนวนคลอบคลุมฝน", expanded=True) as status:
-            rgb, mask_vis ,cropped, rain_vis, highlight, plot_img, data_coverage_and_trend_rain = data_coverage.get_data(uploaded_file)
-            average_coverage, trend = data_coverage_and_trend_rain
-            print("data")
-            st.subheader("📊 Radar Information")
-            coverage_1 ,trend_1 = st.columns(2)
-            with coverage_1:
-                st.metric("🧭 Coverage", f"{average_coverage:.2f}%")
-            with trend_1:
-                if trend == 'increasing':
-                    trend_text = 'เพิ่มขึ้น'
-                elif trend == 'decreasing':
-                    trend_text = 'ลดลง'
-                else:
-                    trend_text = 'คงที่'
-                st.metric("🧭 Trend", f"{trend_text}")
-            descibe_coverage_mask, rain_data_debug = st.columns(2)
-            
-            with descibe_coverage_mask:
-                st.image(rgb, caption="RGB",  use_container_width=True)
-                st.image(mask_vis, caption="Mask", use_container_width=True)
-                st.image(cropped, caption="Cropped", use_container_width=True)
-            with rain_data_debug:
-                st.image(rain_vis, caption="Rain Visualization", use_container_width=True)
-                st.image(highlight, caption="Highlight", use_container_width=True)
-                st.image(plot_img, caption="plot_img", use_container_width=True)
-            
-            st.success(f"Done!")
-    
+            with st.spinner("กำลังประมวลผล..."):
+                rgb, mask_vis ,cropped, rain_vis, highlight, plot_img, data_coverage_and_trend_rain = data_coverage.get_data(uploaded_file)
+                average_coverage, trend = data_coverage_and_trend_rain
+                print("data")
+                st.subheader("📊 Radar Information")
+                coverage_1 ,trend_1 = st.columns(2)
+                with coverage_1:
+                    st.metric("🧭 Coverage", f"{average_coverage:.2f}%")
+                with trend_1:
+                    if trend == 'increasing':
+                        trend_text = 'เพิ่มขึ้น'
+                    elif trend == 'decreasing':
+                        trend_text = 'ลดลง'
+                    else:
+                        trend_text = 'คงที่'
+                    st.metric("🧭 Trend", f"{trend_text}")
+                descibe_coverage_mask, rain_data_debug = st.columns(2)
+                
+                with descibe_coverage_mask:
+                    st.image(rgb, caption="RGB",  use_container_width=True)
+                    st.image(mask_vis, caption="Mask", use_container_width=True)
+                    st.image(cropped, caption="Cropped", use_container_width=True)
+                with rain_data_debug:
+                    st.image(rain_vis, caption="Rain Visualization", use_container_width=True)
+                    st.image(highlight, caption="Highlight", use_container_width=True)
+                    st.image(plot_img, caption="plot_img", use_container_width=True)
+                
+                st.success(f"Done!")
+        
     if module_district_data:
         progress = st.progress(0)
         with st.status("🌧️ Rain District Analysis", expanded=True) as rain_district_name_status:
