@@ -155,15 +155,20 @@ with st.status("generate caption", expanded=True) as n:
     # =========================================================
     # st.subheader("🧠 Select Analysis Modules")
 
-    col1, col_3 = st.columns(2)
+    # col1, col_3 = st.columns(2)
 
-    with col1:
-        module_direction_data = st.checkbox("📊 Direction Calculator", value=True)
-        module_coverage_data = st.checkbox("🗺️ Coverage คำนวนคลอบคลุมฝน", value=True)
+    # with col1:
+    #     module_direction_data = st.checkbox("📊 Direction Calculator", value=True)
+    #     module_coverage_data = st.checkbox("🗺️ Coverage คำนวนคลอบคลุมฝน", value=True)
 
-    with col_3:
-        module_district_data = st.checkbox("📈 Rain District Detector", value=True)
-        module_prediction_data = st.checkbox("🖼️ Rain Prediction", value=True)
+    # with col_3:
+    #     module_district_data = st.checkbox("📈 Rain District Detector", value=True)
+    #     module_prediction_data = st.checkbox("🖼️ Rain Prediction", value=True)
+    module_direction_data = True
+    module_coverage_data = True
+    module_district_data = True
+    module_prediction_data = True
+    module_caption_data = True
 def ui_update(text, p):
     status.write(text)
     progress.progress(p)
@@ -564,7 +569,7 @@ if uploaded_file is not None:
                     color2="#1565c0",
                     emoji="👀"
                 )
-        if module_direction_data and module_coverage_data and module_district_data and module_prediction_data:
+        if module_caption_data:
             progress = st.progress(0)
             with st.status("🌧️ Caption ", expanded=True) as caption_data:
                 data_caption = []
