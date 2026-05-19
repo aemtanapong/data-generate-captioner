@@ -20,10 +20,13 @@ import data_district_rainv3
 import data_prediction
 from datetime import datetime
 import uuid
+import requests
 plt.rcParams['font.family'] = 'Tahoma'
 from PIL import Image
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
+
+
 def render_district_grid_html(
     title,
     districts,
@@ -136,6 +139,91 @@ def render_district_grid_html(
 
     st.html(html)
 
+# =========================================================
+# CACHE WEATHER DATA
+# =========================================================
+@st.cache_data(ttl=900)  # cache 15 minutes
+def _fetch_weather_data(
+    latitude,
+    longitude
+):
+
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={latitude}"
+        f"&longitude={longitude}"
+        "&current=temperature_2m,relative_humidity_2m"
+    )
+
+    response = requests.get(
+        url,
+        timeout=10
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    current_data = data["current"]
+
+    return {
+        "temperature": current_data["temperature_2m"],
+        "humidity": current_data["relative_humidity_2m"],
+        "raw": data
+    }
+
+
+# =========================================================
+# SAFE WEATHER FUNCTION
+# =========================================================
+def get_weather_data(
+    latitude=13.76,
+    longitude=100.55
+):
+
+    # -----------------------------------------------------
+    # SESSION CACHE STORAGE
+    # -----------------------------------------------------
+    cache_key = f"{latitude}_{longitude}"
+
+    try:
+
+        # -------------------------------------------------
+        # FETCH NEW DATA
+        # -------------------------------------------------
+        weather_data = _fetch_weather_data(
+            latitude,
+            longitude
+        )
+
+        # -------------------------------------------------
+        # SAVE FALLBACK CACHE
+        # -------------------------------------------------
+        st.session_state[cache_key] = weather_data
+
+        return weather_data
+
+    except Exception as e:
+
+        print(f"⚠️ API Error: {e}")
+
+        # -------------------------------------------------
+        # USE OLD CACHE IF EXISTS
+        # -------------------------------------------------
+        if cache_key in st.session_state:
+
+            print("📦 Using cached weather data")
+
+            return st.session_state[cache_key]
+
+        # -------------------------------------------------
+        # NO CACHE AVAILABLE
+        # -------------------------------------------------
+        return {
+            "temperature": None,
+            "humidity": None,
+            "raw": None
+        }
 col1, col2, col3 = st.columns(3)
 with col1:
     st.image("app/rain/converted_gif/norain-001.gif", caption = "ไม่มีฝนแต่มีเมฆ")
@@ -210,16 +298,20 @@ if uploaded_file is not None:
                 # Row 1: Information
                 # -------------------------
                 st.subheader("📊 Radar Information")
-                col1, col2 = st.columns(2)
+                # col1, col2 = st.columns(2)
 
-                with col1:
-                    st.metric("🧭 Direction", move_caption_data[1])
-
-                with col2:
-                    try:
-                        st.metric("📐 Degree", f"{move_caption_data[0]:.0f}°")
-                    except:
-                        st.metric("📐 Degree", f"{move_caption_data[0]}°")
+                # with col1:
+                st.write(f"🧭 {move_caption_data[1]}")
+                try:
+                    st.metric("📐 Degree", f"{move_caption_data[0]:.0f}°")
+                except:
+                    st.metric("📐 Degree", f"{move_caption_data[0]}°")
+                # st.metric("📐 Degree", f"{move_caption_data[0]:.0f}°")
+                # with col2:
+                #     try:
+                #         st.metric("📐 Degree", f"{move_caption_data[0]:.0f}°")
+                #     except:
+                #         st.metric("📐 Degree", f"{move_caption_data[0]}°")
 
                 st.divider()
 
@@ -556,14 +648,14 @@ if uploaded_file is not None:
                     emoji="🚨"
                 )
                 render_district_grid_html(
-                    title="ฝนเริ่มเคลื่อนเข้า",
+                    title="คาดว่าจะเข้าปกคลุมพื้นที่เขต",
                     districts=num_district_data["🌧️ ฝนเริ่มเคลื่อนเข้า"],
                     color1="#ffb74d",
                     color2="#ef6c00",
                     emoji="🌧️"
                 )
                 render_district_grid_html(
-                    title="เฝ้าระวัง",
+                    title="ให้เฝ้าระวังพื้นที่ได้รับผลกระทบถ้ากลุ่มฝนไม่สลายตัว",
                     districts=num_district_data["👀 เฝ้าระวัง"],
                     color1="#64b5f6",
                     color2="#1565c0",
@@ -638,8 +730,11 @@ if uploaded_file is not None:
                     data_caption.append("👉 https://weather.bangkok.go.th/Radar/RadarAnimationNk.aspx  \n\n")
                     st.write("".join(data_caption))
                 else:
-                    tempurature = 30
-                    r_humidity_data = 79
+                    data_rhr = get_weather_data()
+
+                    tempurature = data_rhr['temperature']
+                    r_humidity_data = data_rhr["humidity"]
+
                     data_caption.append(f"☁️ พื้นที่ กทม. ไม่พบกลุ่มฝน  \n")
                     data_caption.append(f"🌡️ อุณหภูมิที่สำนักการระบายน้ำ {tempurature} องศาเซลเซียส  \n")
                     data_caption.append(f"💧 ความชื้นสัมพัทธ์ {r_humidity_data}%  \n\n")

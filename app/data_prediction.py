@@ -209,11 +209,11 @@ def get_rain_data(score_dict, n_frame):
         "👀 เฝ้าระวัง": [],
         "☀️ ไม่มีฝน": []
     }
-
+    
     for district, score in score_dict.items():
 
         normalized_score = score / max_score
-
+        print(score,'/',max_score, score / max_score)
         if normalized_score >= 0.80:
 
             result["🚨 ฝนต่อเนื่อง"].append(district)

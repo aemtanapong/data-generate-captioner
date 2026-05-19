@@ -215,7 +215,7 @@ def draw_clusters_on_frame(frame, clusters, average_angle):
         return img, move_caption_data
     except:
         print("Error")
-        return img, ("-", "ไม่มี")
+        return img, ("-", "ไม่มีฝน")
 
 def draw(frame, clusters, flow):
     out = frame.copy()
@@ -245,31 +245,68 @@ def draw(frame, clusters, flow):
 # ==================================================
 # MAIN (NO FILE SAVE / SAME OLD RESULT)
 # ==================================================
+# def get_direction_from_points(x1, y1, x2, y2):
+#     dx = x2 - x1
+#     dy = y2 - y1
+
+#     # OpenCV: y ลง = positive → ต้อง flip เพื่อให้ตรงกับเข็มทิศ
+#     angle = np.degrees(np.arctan2(-dy, dx))
+#     angle = (angle + 360) % 360
+#     if 337.5 <= angle or angle < 22.5:
+#         direction = "ทิศตะวันออก"
+#     elif 22.5 <= angle < 67.5:
+#         direction = "ทิศตะวันออกเฉียงเหนือ"
+#     elif 67.5 <= angle < 112.5:
+#         direction = "ทิศเหนือ"
+#     elif 112.5 <= angle < 157.5:
+#         direction = "ทิศตะวันตกเฉียงเหนือ"
+#     elif 157.5 <= angle < 202.5:
+#         direction = "ทิศตะวันตก"
+#     elif 202.5 <= angle < 247.5:
+#         direction = "ทิศตะวันตกเฉียงใต้"
+#     elif 247.5 <= angle < 292.5:
+#         direction = "ทิศใต้"
+#     else:
+#         direction = "ทิศตะวันออกเฉียงใต้"
+
+#     return angle, direction
 def get_direction_from_points(x1, y1, x2, y2):
+
     dx = x2 - x1
     dy = y2 - y1
 
-    # OpenCV: y ลง = positive → ต้อง flip เพื่อให้ตรงกับเข็มทิศ
+    # OpenCV coordinate:
+    # y increasing downward → flip dy
     angle = np.degrees(np.arctan2(-dy, dx))
     angle = (angle + 360) % 360
-    if 337.5 <= angle or angle < 22.5:
-        direction = "ทิศตะวันออก"
-    elif 22.5 <= angle < 67.5:
-        direction = "ทิศตะวันออกเฉียงเหนือ"
-    elif 67.5 <= angle < 112.5:
-        direction = "ทิศเหนือ"
-    elif 112.5 <= angle < 157.5:
-        direction = "ทิศตะวันตกเฉียงเหนือ"
-    elif 157.5 <= angle < 202.5:
-        direction = "ทิศตะวันตก"
-    elif 202.5 <= angle < 247.5:
-        direction = "ทิศตะวันตกเฉียงใต้"
-    elif 247.5 <= angle < 292.5:
-        direction = "ทิศใต้"
-    else:
-        direction = "ทิศตะวันออกเฉียงใต้"
 
-    return angle, direction
+    directions = [
+
+        "ทิศตะวันออก",                    # E
+        "ทิศตะวันออกค่อนไปทางตะวันออกเฉียงเหนือ", # ENE
+        "ทิศตะวันออกเฉียงเหนือ",            # NE
+        "ทิศเหนือค่อนไปทางตะวันออกเฉียงเหนือ",   # NNE
+
+        "ทิศเหนือ",                       # N
+        "ทิศเหนือค่อนไปทางตะวันตกเฉียงเหนือ",    # NNW
+        "ทิศตะวันตกเฉียงเหนือ",             # NW
+        "ทิศตะวันตกค่อนไปทางตะวันตกเฉียงเหนือ",  # WNW
+
+        "ทิศตะวันตก",                     # W
+        "ทิศตะวันตกค่อนไปทางตะวันตกเฉียงใต้",    # WSW
+        "ทิศตะวันตกเฉียงใต้",               # SW
+        "ทิศใต้ค่อนไปทางตะวันตกเฉียงใต้",       # SSW
+
+        "ทิศใต้",                         # S
+        "ทิศใต้ค่อนไปทางตะวันออกเฉียงใต้",      # SSE
+        "ทิศตะวันออกเฉียงใต้",             # SE
+        "ทิศตะวันออกค่อนไปทางตะวันออกเฉียงใต้"  # ESE
+    ]
+
+    # 360 / 16 = 22.5°
+    index = int((angle + 11.25) // 22.5) % 16
+
+    return angle, directions[index]
 MAIN_DIRECTION_DEGREE = None
 MOVE_CAPTION = None
 def radar_pipeline(input_gif_path, update=None):
