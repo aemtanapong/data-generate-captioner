@@ -684,11 +684,12 @@ def get_data(GIF_PATH, degree_value, update = None):
 
         center_prev_pixels = get_radar_center_of_mass(frame_prev_rgb)
         center_curr_pixels = get_radar_center_of_mass(frame_curr_rgb)
+        speed_meters_per_minute = 0.0
 
         if center_prev_pixels and center_curr_pixels:
             cX_prev, cY_prev = center_prev_pixels
             cX_curr, cY_curr = center_curr_pixels
-
+            print("cX_curr, cY_curr : ", cX_curr, cY_curr)
             # Calculate displacement in pixels
             delta_x_pixels = cX_curr - cX_prev
             # Note: In image coordinates, positive Y is typically downwards.
@@ -764,13 +765,16 @@ def get_data(GIF_PATH, degree_value, update = None):
             print(f"  Projected center of radar cloud (geographic coordinates - UTM): ({proj_geo_x:.2f}, {proj_geo_y:.2f})")
 
         else:
+            cX_curr, cY_curr = 0.0, 0.0
+            speed_km_per_hour = 0.0
             print("Could not detect sufficient radar activity in the last two frames to calculate movement or project nowcast.")
 
     # Input your desired simulation parameters here
     n_frame = 14
     new_simulated_direction_degrees = degree_value  # Example: 90 degrees for East
     new_nowcast_minutes_ahead = 30      # Example: 30 minutes ahead
-
+    if new_simulated_direction_degrees == '-':
+        new_simulated_direction_degrees = 0.0
     print(f"Simulating nowcast with direction: {new_simulated_direction_degrees} degrees (0=North, 90=East) and {new_nowcast_minutes_ahead} minutes ahead.")
     
     #Reuse previously calculated speed and current radar position
@@ -783,6 +787,7 @@ def get_data(GIF_PATH, degree_value, update = None):
     # Convert simulated_direction_degrees (0=North, 90=East, increases clockwise)
     # to radians for trigonometric functions (0=East, increases counter-clockwise)
     # (90 - direction) converts North=0 to Math_Y_axis=90, East=90 to Math_X_axis=0
+    print("new_simulated_direction_degrees : ", new_simulated_direction_degrees)
     simulated_angle_rad = np.deg2rad(90 - new_simulated_direction_degrees)
 
     # Calculate projected displacement vector components in meters
