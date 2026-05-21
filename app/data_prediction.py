@@ -1151,7 +1151,7 @@ def get_data(GIF_PATH, degree_value, update = None):
         fig.savefig(
             buf,
             format='png',
-            bbox_inches='tight'
+            # bbox_inches='tight'
         )
 
         buf.seek(0)
@@ -1172,7 +1172,7 @@ def get_data(GIF_PATH, degree_value, update = None):
         )
 
         gif_frames.append(frame_img)
-
+        print(frame_img.shape)
         buf.close()
         plt.close(fig)
         # print(f"--- Metrics for Nowcast Frame {nowcast_frame_num} ({current_nowcast_minutes_ahead:.0f} min ahead) ---")
