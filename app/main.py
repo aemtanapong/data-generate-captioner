@@ -226,15 +226,15 @@ def get_weather_data(
             "raw": None
         }
 col1, col2, col3 = st.columns(3)
-# with col1:
-#     st.image("app/rain/converted_gif/norain-001.gif", caption = "ไม่มีฝนแต่มีเมฆ")
-#     st.image("app/rain/converted_gif/rain-001.gif", caption = "มีฝนหลายพื้นที่กทม")
-# with col2:
-#     st.image("app/rain/converted_gif/norain-002.gif", caption = "ไม่มีฝน")
-#     st.image("app/rain/converted_gif/rain-002.gif", caption = "ฝนเล็กน้อยในเขตกทม")
-# with col3:
-#     st.image("app/rain/converted_gif/norain-003.gif", caption = "ไม่มีฝน")
-#     st.image("app/rain/converted_gif/rain-003.gif", caption = "มีฝนหนักปานกลางเบาไม่มีฝนและฝนกำลังเข้าพื้นที่กทม")
+with col1:
+    st.image("app/rain/converted_gif/norain-001.gif", caption = "ไม่มีฝนแต่มีเมฆ")
+    st.image("app/rain/converted_gif/rain-001.gif", caption = "มีฝนหลายพื้นที่กทม")
+with col2:
+    st.image("app/rain/converted_gif/norain-002.gif", caption = "ไม่มีฝน")
+    st.image("app/rain/converted_gif/rain-002.gif", caption = "ฝนเล็กน้อยในเขตกทม")
+with col3:
+    st.image("app/rain/converted_gif/norain-003.gif", caption = "ไม่มีฝน")
+    st.image("app/rain/converted_gif/rain-003.gif", caption = "มีฝนหนักปานกลางเบาไม่มีฝนและฝนกำลังเข้าพื้นที่กทม")
 
 # st.image(["app/rain/norain-001.gif", "app/rain/rain001.gif"])
 with st.status("generate caption", expanded=True) as n:
