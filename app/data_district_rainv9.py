@@ -444,7 +444,7 @@ def get_data(GIF_PATH, update = None):
     radar_x = 699558.0797  # พิกัด UTM X ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
     radar_y = 1530232.3207 # พิกัด UTM Y ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
     pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ตรวจสอบค่านี้อีกครั้ง)
-    shapefile_path = r'C:\Users\BMA_01\Documents\ขอข้อมูล\2026-05-01-main-captioner\mapdata\Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
+    shapefile_path = r'.\mapdata\Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
     threshold = 10
     print("gif : ",gif_path)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
