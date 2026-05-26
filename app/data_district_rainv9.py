@@ -446,6 +446,7 @@ def get_data(GIF_PATH, update = None):
     pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ตรวจสอบค่านี้อีกครั้ง)
     shapefile_path = r'.\mapdata\Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
     threshold = 10
+    
     print("gif : ",gif_path)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
         gif_path=gif_path,
