@@ -1,4 +1,5 @@
 import cv2
+import io
 import numpy as np
 import imageio.v2 as imageio
 import geopandas as gpd
@@ -11,9 +12,6 @@ import pandas as pd # Import pandas for DataFrame creation
 import matplotlib.font_manager as fm
 import os
 from matplotlib.patches import Patch
-import geopandas as gpd
-from PIL import Image
-import io
 DISTRICT_DEBUG = False
 def calculate_district_metrics(radar_frame_rgba, district_gdf, radar_extent, target_colors, values, threshold=60):
     """
@@ -336,95 +334,119 @@ def process_radar_animation_and_extract_district_values(
 
     return pd.DataFrame(df_rows)
 
-
-def get_last_gif_frame_data(gif_path):
+def get_last_gif_frame_file(gif_path):
     """
-    Opens a GIF file, extracts its last frame, and returns it as an RGB NumPy array.
-
-    Args:
-        gif_path (str): The path to the GIF file.
-
-    Returns:
-        np.ndarray: A NumPy array representing the last frame of the GIF in RGB format,
-                    or None if the GIF cannot be opened or has no frames.
+    Return last frame as in-memory GIF file object
     """
+
     try:
         with Image.open(gif_path) as img:
+
             if img.n_frames == 0:
-                print(f"Warning: GIF at {gif_path} has no frames.")
                 return None
-            
-            # Seek to the last frame
+
+            # ไป frame สุดท้าย
             img.seek(img.n_frames - 1)
-            
-            # Convert to RGB and then to a NumPy array
-            last_frame_rgb = np.array(img.convert('RGB'))
-            return last_frame_rgb
-    except FileNotFoundError:
-        print(f"Error: GIF file not found at {gif_path}")
-        return None
+
+            # convert RGB
+            last_frame = img.convert("RGB")
+
+            # save ลง memory
+            gif_buffer = io.BytesIO()
+
+            last_frame.save(
+                gif_buffer,
+                format="GIF"
+            )
+
+            gif_buffer.seek(0)
+
+            return gif_buffer
+
     except Exception as e:
-        print(f"Error processing GIF {gif_path}: {e}")
+        print(e)
         return None
 
+def get_last_gif_frame_file(gif_input):
 
-import numpy as np
-# Get the last frame data
+    try:
+
+        # ถ้าเป็น PIL Image อยู่แล้ว
+        if isinstance(gif_input, Image.Image):
+            img = gif_input
+
+        else:
+            img = Image.open(gif_input)
+
+        if getattr(img, "n_frames", 1) == 0:
+            return None
+
+        img.seek(img.n_frames - 1)
+
+        last_frame = img.convert("RGB")
+
+        gif_buffer = io.BytesIO()
+
+        last_frame.save(
+            gif_buffer,
+            format="GIF"
+        )
+
+        gif_buffer.seek(0)
+
+        return gif_buffer
+
+    except Exception as e:
+        print("ERROR:", e)
+        return None
 target_colors = np.array([
-        [252, 252, 255], # 66.5
-        [252, 219, 255], # 64.0
-        [252, 202, 255], # 61.5
-        [252, 139, 255], # 59.0
-        [252,   0, 255], # 56.5
-        [195,   0,  85], # 54.0
-        [216,   0,  71], # 51.5
-        [224,   0,  85], # 49.0
-        [238,   0,   0], # 46.5
-        [252,  75,   0], # 44.0
-        [222, 152,   0], # 41.5
-        [230, 164,   0], # 39.0
-        [252, 214,   0], # 36.5
-        [216, 216,   0], # 34.0
-        [234, 218,   0], # 31.5
-        [238, 252,   0], # 29.0
-        [  0, 243,   0], # 26.5
-        [  0, 236,   0], # 24.0
-        [  0, 214,  82], # 21.5
-        [  0, 200,   0], # 19.0
-        [  0, 197,   0], # 16.5
-        [  0, 191,   0], # 14.0
-        [  0, 176,   0], # 11.5
-        [  0, 168,   0],  # 10.0
-        [0,0,255]
-    ])
+      # [252, 252, 255], # 66.5
+      # [252, 219, 255], # 64.0
+      # [252, 202, 255], # 61.5
+      # [252, 139, 255], # 59.0
+      # [252,   0, 255], # 56.5
+      [195,   0,  85], # 54.0
+      [216,   0,  71], # 51.5
+      [224,   0,  85], # 49.0
+      [238,   0,   0], # 46.5
+      [252,  75,   0], # 44.0
+      [222, 152,   0], # 41.5
+      [230, 164,   0], # 39.0
+      [252, 214,   0], # 36.5
+      [216, 216,   0], # 34.0
+      [234, 218,   0], # 31.5
+      [238, 252,   0], # 29.0
+      [  0, 243,   0], # 26.5
+      [  0, 236,   0], # 24.0
+      [  0, 214,  82], # 21.5
+      [  0, 200,   0], # 19.0
+      [  0, 197,   0], # 16.5
+      [  0, 191,   0], # 14.0
+      [  0, 176,   0], # 11.5
+      [  0, 168,   0],  # 10.0
+      # [0,0,255]
+  ])
 values = np.array([
-    66.5, 64.0, 61.5, 59.0, 56.5, 54.0, 51.5, 49.0, 46.5,
-    44.0, 41.5, 39.0, 36.5, 34.0, 31.5, 29.0, 26.5, 24.0,
-    21.5, 19.0, 16.5, 14.0, 11.5, 10.0, 9.5
-])
-radar_x = 699558.0797  # พิกัด UTM X ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
-radar_y = 1530232.3207 # พิกัด UTM Y ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
-pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ตรวจสอบค่านี้อีกครั้ง)
-shapefile_path = r'C:\Users\dds-user\dds-task-flows\Scripts\flows\generate_caption\mapdata\Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
-threshold = 15
+      # 66.5, 64.0, 61.5, 59.0, 56.5,
+      54.0,
+      51.5, 49.0, 46.5,
+      44.0, 41.5, 39.0,
+      36.5, 34.0, 31.5,
+      29.0, 26.5, 24.0,
+      21.5, 19.0, 16.5,
+      14.0, 11.5, 10.0,
+      # 9.5
+  ])
 def get_data(GIF_PATH, update = None):
-    last_frame_data = get_last_gif_frame_data(GIF_PATH)
-
-    if last_frame_data is not None:
-        # Convert the NumPy array to a PIL Image
-        img_to_save = Image.fromarray(last_frame_data)
-
-        # Define the output path for the GIF
-        output_gif_path = 'output_last_frame.gif' # You can change the filename here
-
-        # Save the image as a GIF
-        img_to_save.save(output_gif_path)
-        print(f"Last frame successfully saved as {output_gif_path}")
-    else:
-        print("Could not retrieve last frame data to save.")
     # gif_path = "/content/drive/MyDrive/radar/radar (2).gif"
-    gif_path = "output_last_frame.gif"
-    
+    # print(GIF_PATH)
+    gif_path = get_last_gif_frame_file(GIF_PATH)
+    radar_x = 699558.0797  # พิกัด UTM X ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
+    radar_y = 1530232.3207 # พิกัด UTM Y ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
+    pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ตรวจสอบค่านี้อีกครั้ง)
+    shapefile_path = r'C:\Users\BMA_01\Documents\ขอข้อมูล\2026-05-01-main-captioner\mapdata\Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
+    threshold = 10
+    print("gif : ",gif_path)
     df_radar_metrics = process_radar_animation_and_extract_district_values(
         gif_path=gif_path,
         radar_x=radar_x,
@@ -434,10 +456,10 @@ def get_data(GIF_PATH, update = None):
         target_colors=target_colors,
         values=values
     )
-    df_radar_metrics
+    print(df_radar_metrics)
     import pandas as pd
     from scipy.stats import linregress
-    import numpy as np
+
     # Assuming df_radar_metrics is available from previous cells
     # Filter for districts that actually had some rain (score > 0 at some point)
     raining_districts_df = df_radar_metrics[df_radar_metrics['Score'] > 0]
@@ -471,7 +493,6 @@ def get_data(GIF_PATH, update = None):
             print(f"- {row['District']}: Slope={row['Slope']:.2f}, R-squared={row['R_Value']**2:.2f}, P-value={row['P_Value']:.3f}")
     else:
         print("No districts found with a significant upward linear trend in rain level.")
-    
     frames = []
 
     average_map_frame = []
@@ -507,19 +528,19 @@ def get_data(GIF_PATH, update = None):
             # average_map_frame.append(processed)
             frames.append(processed)
     processed
-    # Define global variables needed for plotting and grid metrics
-    
+    # import geopandas as gpd
+    # from PIL import Image
 
     # These should be globally available from previous cells but are re-assigned for clarity/robustness
     # radar_x, radar_y, pixel_resolution are from 1zPY95e5iOYT
     # gif_path, shapefile_path are from 1zPY95e5iOYT
 
     # Load gdf if not already available or ensure it's in scope
-    if 'gdf' not in globals() or gdf is None:
-        print("Loading gdf globally...")
-        gdf = gpd.read_file(shapefile_path)
-    else:
-        print("gdf is already loaded globally.")
+    # if 'gdf' not in globals() or gdf is None:
+    #     print("Loading gdf globally...")
+    gdf = gpd.read_file(shapefile_path)
+    # else:
+    #     print("gdf is already loaded globally.")
 
     # Determine img_width and img_height from the processed frames (available from iTnYQGi2qYq9)
     if 'frames' in globals() and len(frames) > 0:
@@ -539,21 +560,11 @@ def get_data(GIF_PATH, update = None):
     top = radar_y + (img_height / 2 * pixel_resolution)
     img_extent = [left, right, bottom, top]
     print(f"img_extent calculated globally: {img_extent}")
-
-    # Also ensure 'all_frames_coverage' and 'all_frames_district_scores' are globally available for subsequent cells
-    # They were implicitly made global by the previous execution of 1zPY95e5iOYT (via process_radar_animation_and_extract_district_values)
-    # However, the previous modification of process_radar_animation_and_extract_district_values means they are no longer returned directly.
-    # They need to be re-derived if they are to be used outside the function's scope.
-    # Since we modified process_radar_animation_and_extract_district_values to return a single DataFrame (df_radar_metrics),
-    # we should use that DataFrame instead of trying to access these internal lists.
-    # The cells 'WlXihorjBPMX', 'fce26709', 'Aq16Y3QOC06I', 'CxI_Lly9FCyY' rely on these lists directly.
-    # This indicates these cells might need to be re-written to work with df_radar_metrics or the function output needs to be unpacked.
-    # For now, I will proceed to ensure basic plotting of frames and grid metrics are functional, as these are the immediate errors.
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import matplotlib.font_manager as fm
-    import os
-    from matplotlib.patches import Patch
+    # import matplotlib.pyplot as plt
+    # import numpy as np
+    # import matplotlib.font_manager as fm
+    # import os
+    # from matplotlib.patches import Patch
 
     # --- Font Configuration for Thai Characters ---
     # Install Thai fonts if not already installed (for Colab environment)
@@ -565,7 +576,7 @@ def get_data(GIF_PATH, update = None):
     font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
     thai_font_path = None
     for font_path in font_paths:
-        if 'tahoma' in font_path: # Look for common Thai fonts
+        if 'Sarabun' in font_path or 'Garuda' in font_path or 'Laksaman' in font_path: # Look for common Thai fonts
             thai_font_path = font_path
             break
 
@@ -594,7 +605,7 @@ def get_data(GIF_PATH, update = None):
         # Get districts with rain in the current frame from df_radar_metrics
         # df_radar_metrics should be available from previous executions
         current_frame_df = df_radar_metrics[df_radar_metrics['Frame'] == (i + 1)]
-        raining_districts_in_frame = current_frame_df[current_frame_df['Coverage'] > 0]['District'].tolist()
+        raining_districts_in_frame = current_frame_df[current_frame_df['Coverage'] > 0][current_frame_df['Score'] > 0]['District'].tolist()
         all_raining_districts_per_frame.append(f"Frame {i+1}: {raining_districts_in_frame}") # Store for later printing
 
         # Separate GeoDataFrame into districts with and without radar coverage in the current frame
@@ -659,7 +670,7 @@ def get_data(GIF_PATH, update = None):
         ]
         ax.legend(handles=legend_handles)
         plt.tight_layout()
-        # plt.show()
+        plt.show()
         # You can save the frames as a GIF if you prefer, uncomment the lines below:
         # from PIL import Image
         # img_pil = Image.fromarray(np.uint8(fig.canvas.buffer_rgba()))
@@ -1178,8 +1189,31 @@ def get_data(GIF_PATH, update = None):
     
     return gif_bytes, grouped_district_name
 if __name__ == "__main__":
-    gif_path = r"C:/Users/dds-user/dds-task-flows/Scripts/radar_caption/central/history/2026/20260525_030000.webp"
+    gif_path = r"C:/Users/BMA_01/Documents/ขอข้อมูล/2026-05-01-main-captioner/example/20260525_040000.webp"
     gif_bytes, grouped_district_name = get_data(gif_path)
     print(grouped_district_name)
     if (len(grouped_district_name['heavy'])+len(grouped_district_name["medium"])+len(grouped_district_name['light']) > 0):
         print(grouped_district_name['heavy'], grouped_district_name["medium"], grouped_district_name['light'])
+
+
+        gif_file = io.BytesIO(gif_bytes)
+
+        # ==========================================
+        # READ ALL FRAMES
+        # ==========================================
+        frames = imageio.mimread(gif_file)
+
+        print("num frames:", len(frames))
+
+        # ==========================================
+        # SHOW LAST FRAME
+        # ==========================================
+        plt.figure(figsize=(10, 10))
+
+        plt.imshow(frames[-1])
+
+        plt.axis("off")
+
+        plt.title("Last GIF Frame")
+
+        plt.show()

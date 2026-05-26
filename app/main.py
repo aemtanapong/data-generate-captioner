@@ -16,7 +16,7 @@ import random
 from datetime import datetime
 import re
 import data_coverage
-import data_district_rainv3
+import data_district_rainv9
 import data_prediction
 from datetime import datetime
 import uuid
@@ -25,6 +25,7 @@ plt.rcParams['font.family'] = 'Tahoma'
 from PIL import Image
 st.title("Radar Animation")
 st.set_page_config( page_title="Radar Detail")
+
 
 
 def render_district_grid_html(
@@ -225,15 +226,15 @@ def get_weather_data(
             "raw": None
         }
 col1, col2, col3 = st.columns(3)
-with col1:
-    st.image("app/rain/converted_gif/norain-001.gif", caption = "ไม่มีฝนแต่มีเมฆ")
-    st.image("app/rain/converted_gif/rain-001.gif", caption = "มีฝนหลายพื้นที่กทม")
-with col2:
-    st.image("app/rain/converted_gif/norain-002.gif", caption = "ไม่มีฝน")
-    st.image("app/rain/converted_gif/rain-002.gif", caption = "ฝนเล็กน้อยในเขตกทม")
-with col3:
-    st.image("app/rain/converted_gif/norain-003.gif", caption = "ไม่มีฝน")
-    st.image("app/rain/converted_gif/rain-003.gif", caption = "มีฝนหนักปานกลางเบาไม่มีฝนและฝนกำลังเข้าพื้นที่กทม")
+# with col1:
+#     st.image("app/rain/converted_gif/norain-001.gif", caption = "ไม่มีฝนแต่มีเมฆ")
+#     st.image("app/rain/converted_gif/rain-001.gif", caption = "มีฝนหลายพื้นที่กทม")
+# with col2:
+#     st.image("app/rain/converted_gif/norain-002.gif", caption = "ไม่มีฝน")
+#     st.image("app/rain/converted_gif/rain-002.gif", caption = "ฝนเล็กน้อยในเขตกทม")
+# with col3:
+#     st.image("app/rain/converted_gif/norain-003.gif", caption = "ไม่มีฝน")
+#     st.image("app/rain/converted_gif/rain-003.gif", caption = "มีฝนหนักปานกลางเบาไม่มีฝนและฝนกำลังเข้าพื้นที่กทม")
 
 # st.image(["app/rain/norain-001.gif", "app/rain/rain001.gif"])
 with st.status("generate caption", expanded=True) as n:
@@ -399,7 +400,10 @@ if uploaded_file is not None:
         progress = st.progress(0)
         with st.status("🌧️ Rain District Analysis", expanded=True) as rain_district_name_status:
             with st.spinner("กำลังประมวลผล..."):
-                plot_img, rain_district_data = data_district_rainv3.get_data(gif_bytes, update = rain_district_name_ui_update)
+                plot_img, rain_district_data = data_district_rainv9.get_data(
+                                                    io.BytesIO(gif_bytes),
+                                                    update=rain_district_name_ui_update
+                                                )
 
             # =========================
             # HEADER

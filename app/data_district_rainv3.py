@@ -8,61 +8,13 @@ from rasterio.transform import from_bounds
 from shapely.geometry import mapping
 import rasterio.features # Required for calculate_district_metrics
 import pandas as pd # Import pandas for DataFrame creation
-from scipy.stats import linregress
-import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib.font_manager as fm
 import os
 from matplotlib.patches import Patch
+import geopandas as gpd
+from PIL import Image
 import io
-
 DISTRICT_DEBUG = False
-def create_in_memory_gif(frames_4d_array, fps=10):
-    """
-    Creates an animated GIF from a 4D NumPy array (num_frames, height, width, channels)
-    and returns it as bytes in memory.
-
-    Args:
-        frames_4d_array (np.ndarray): A 4D NumPy array where the first dimension is the number of frames,
-                                    and the last dimension is 3 (RGB) or 4 (RGBA).
-        fps (int, optional): Frames per second for the GIF. Defaults to 10.
-
-    Returns:
-        bytes: The bytes content of the generated GIF, or None if an error occurred.
-    """
-    if frames_4d_array.ndim != 4:
-        print(f"Error: Input array must be 4D (num_frames, height, width, channels). Got {frames_4d_array.ndim}D.")
-        return None
-
-    num_channels = frames_4d_array.shape[-1]
-    frames_to_save = []
-
-    if num_channels == 3: # RGB, convert to RGBA with opaque alpha
-        for frame_rgb in frames_4d_array:
-            h, w, _ = frame_rgb.shape
-            frame_rgba = np.zeros((h, w, 4), dtype=np.uint8)
-            frame_rgba[:, :, :3] = frame_rgb
-            frame_rgba[:, :, 3] = 255  # Fully opaque alpha
-            frames_to_save.append(frame_rgba)
-        print("Converting 3-channel RGB frames to 4-channel RGBA (opaque) for GIF creation.")
-    elif num_channels == 4: # Already RGBA
-        frames_to_save = frames_4d_array
-    else:
-        print(f"Error: Last dimension of input array must be 3 (RGB) or 4 (RGBA). Got {num_channels}.")
-        return None
-
-    # Use BytesIO to create an in-memory file-like object
-    gif_buffer = io.BytesIO()
-    try:
-        # Ensure all frames are uint8 and close any open figures before saving.
-        # Explicitly set the format to 'GIF' when using imageio.mimsave with BytesIO.
-        imageio.mimsave(gif_buffer, [np.asarray(f, dtype=np.uint8) for f in frames_to_save], format='GIF', fps=fps, loop=0)
-    except Exception as e:
-        print(f"Error creating GIF: {e}")
-        return None
-
-    gif_buffer.seek(0) # Rewind the buffer to the beginning
-    return gif_buffer.getvalue()
 def calculate_district_metrics(radar_frame_rgba, district_gdf, radar_extent, target_colors, values, threshold=60):
     """
     Calculates both radar coverage percentage and a 'score' for each district
@@ -155,6 +107,96 @@ def extract_radar_frame(img, threshold = 15):
   result = img.copy()
   result[~mask] = 255
   return result
+def extract_radar_frame_hsv(
+    img,
+    target_colors,
+    h_threshold=10,
+    s_threshold=80,
+    v_threshold=80
+):
+
+    # ==========================================
+    # RGB -> HSV
+    # ==========================================
+    hsv_img = cv2.cvtColor(
+        img,
+        cv2.COLOR_RGB2HSV
+    )
+
+    h, w, _ = hsv_img.shape
+
+    pixels = hsv_img.reshape(-1, 3)
+
+    # ==========================================
+    # MASK
+    # ==========================================
+    mask = np.zeros(
+        len(pixels),
+        dtype=bool
+    )
+
+    # ==========================================
+    # TARGET RGB -> HSV
+    # ==========================================
+    target_colors = np.array(
+        target_colors,
+        dtype=np.uint8
+    )
+
+    target_hsv = cv2.cvtColor(
+        target_colors.reshape(-1, 1, 3),
+        cv2.COLOR_RGB2HSV
+    ).reshape(-1, 3)
+
+    # ==========================================
+    # MATCH HSV
+    # ==========================================
+    for color_hsv in target_hsv:
+
+        dh = np.abs(
+            pixels[:, 0].astype(np.int16)
+            - color_hsv[0]
+        )
+
+        # circular hue distance
+        dh = np.minimum(
+            dh,
+            180 - dh
+        )
+
+        ds = np.abs(
+            pixels[:, 1].astype(np.int16)
+            - color_hsv[1]
+        )
+
+        dv = np.abs(
+            pixels[:, 2].astype(np.int16)
+            - color_hsv[2]
+        )
+
+        current_mask = (
+            (dh < h_threshold)
+            &
+            (ds < s_threshold)
+            &
+            (dv < v_threshold)
+        )
+
+        mask |= current_mask
+
+    # ==========================================
+    # RESHAPE
+    # ==========================================
+    mask = mask.reshape(h, w)
+
+    # ==========================================
+    # OUTPUT
+    # ==========================================
+    result = img.copy()
+
+    result[~mask] = 255
+
+    return result
 # Assuming min_pooling, max_pooling, extract_radar_frame, calculate_district_metrics
 # are already defined in previous cells or accessible in the global scope.
 
@@ -207,15 +249,15 @@ def process_radar_animation_and_extract_district_values(
                     cv2.rectangle(frame_array, (700, 600), (1300, 970), (255, 255, 255), -1)
 
                 # Process with extract_radar_frame and pooling operations
-                processed_frame = extract_radar_frame(frame_array)
+                processed_frame = extract_radar_frame_hsv(frame_array, target_colors)
                 # Set white background (255,255,255) to black (0,0,0) before pooling
                 processed_frame[np.all(processed_frame == 255, axis=-1)] = 0
 
                 # Apply pooling operations as seen in iTnYQGi2qYq9
                 processed_frame = max_pooling(processed_frame, 3)
-                processed_frame = min_pooling(processed_frame, 3)
-                processed_frame = min_pooling(processed_frame, 3)
-                processed_frame = max_pooling(processed_frame, 10)
+                # processed_frame = min_pooling(processed_frame, 3)
+                # processed_frame = min_pooling(processed_frame, 3)
+                # processed_frame = max_pooling(processed_frame, 10)
 
                 frames_rgb_processed.append(processed_frame)
     except FileNotFoundError:
@@ -293,35 +335,68 @@ def process_radar_animation_and_extract_district_values(
             })
 
     return pd.DataFrame(df_rows)
-# gif_path = "/content/drive/MyDrive/radar/radar (2).gif"
-# gif_path = "./example/n006.gif"
+
+
+def get_last_gif_frame_data(gif_path):
+    """
+    Opens a GIF file, extracts its last frame, and returns it as an RGB NumPy array.
+
+    Args:
+        gif_path (str): The path to the GIF file.
+
+    Returns:
+        np.ndarray: A NumPy array representing the last frame of the GIF in RGB format,
+                    or None if the GIF cannot be opened or has no frames.
+    """
+    try:
+        with Image.open(gif_path) as img:
+            if img.n_frames == 0:
+                print(f"Warning: GIF at {gif_path} has no frames.")
+                return None
+            
+            # Seek to the last frame
+            img.seek(img.n_frames - 1)
+            
+            # Convert to RGB and then to a NumPy array
+            last_frame_rgb = np.array(img.convert('RGB'))
+            return last_frame_rgb
+    except FileNotFoundError:
+        print(f"Error: GIF file not found at {gif_path}")
+        return None
+    except Exception as e:
+        print(f"Error processing GIF {gif_path}: {e}")
+        return None
+
+
+import numpy as np
+# Get the last frame data
 target_colors = np.array([
-    [252, 252, 255], # 66.5
-    [252, 219, 255], # 64.0
-    [252, 202, 255], # 61.5
-    [252, 139, 255], # 59.0
-    [252,   0, 255], # 56.5
-    [195,   0,  85], # 54.0
-    [216,   0,  71], # 51.5
-    [224,   0,  85], # 49.0
-    [238,   0,   0], # 46.5
-    [252,  75,   0], # 44.0
-    [222, 152,   0], # 41.5
-    [230, 164,   0], # 39.0
-    [252, 214,   0], # 36.5
-    [216, 216,   0], # 34.0
-    [234, 218,   0], # 31.5
-    [238, 252,   0], # 29.0
-    [  0, 243,   0], # 26.5
-    [  0, 236,   0], # 24.0
-    [  0, 214,  82], # 21.5
-    [  0, 200,   0], # 19.0
-    [  0, 197,   0], # 16.5
-    [  0, 191,   0], # 14.0
-    [  0, 176,   0], # 11.5
-    [  0, 168,   0],  # 10.0
-    [0,0,255]
-])
+        [252, 252, 255], # 66.5
+        [252, 219, 255], # 64.0
+        [252, 202, 255], # 61.5
+        [252, 139, 255], # 59.0
+        [252,   0, 255], # 56.5
+        [195,   0,  85], # 54.0
+        [216,   0,  71], # 51.5
+        [224,   0,  85], # 49.0
+        [238,   0,   0], # 46.5
+        [252,  75,   0], # 44.0
+        [222, 152,   0], # 41.5
+        [230, 164,   0], # 39.0
+        [252, 214,   0], # 36.5
+        [216, 216,   0], # 34.0
+        [234, 218,   0], # 31.5
+        [238, 252,   0], # 29.0
+        [  0, 243,   0], # 26.5
+        [  0, 236,   0], # 24.0
+        [  0, 214,  82], # 21.5
+        [  0, 200,   0], # 19.0
+        [  0, 197,   0], # 16.5
+        [  0, 191,   0], # 14.0
+        [  0, 176,   0], # 11.5
+        [  0, 168,   0],  # 10.0
+        [0,0,255]
+    ])
 values = np.array([
     66.5, 64.0, 61.5, 59.0, 56.5, 54.0, 51.5, 49.0, 46.5,
     44.0, 41.5, 39.0, 36.5, 34.0, 31.5, 29.0, 26.5, 24.0,
@@ -330,29 +405,63 @@ values = np.array([
 radar_x = 699558.0797  # พิกัด UTM X ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
 radar_y = 1530232.3207 # พิกัด UTM Y ของจุดกึ่งกลาง (ใส่ค่าของคุณ)
 pixel_resolution = 300     # 1 พิกเซล = กี่เมตร (ตรวจสอบค่านี้อีกครั้ง)
-SHP_PATH = "./mapdata/Export_Output.shp" # ชื่อไฟล์ Shapefile ของคุณ
-threshold = 60
+shapefile_path = './mapdata/Export_Output.shp' # ชื่อไฟล์ Shapefile ของคุณ
+threshold = 15
+def get_gif_and_last_frame(gif_bytes):
+
+    gif_file = io.BytesIO(gif_bytes)
+
+    gif = Image.open(gif_file)
+
+    last_frame = None
+
+    for frame in ImageSequence.Iterator(gif):
+
+        last_frame = frame.copy()
+
+    last_frame_array = np.array(
+        last_frame.convert("RGB")
+    )
+
+    # rewind สำคัญมาก
+    gif_file.seek(0)
+
+    return gif_file, last_frame_array
 def get_data(GIF_PATH, update = None):
-    if update: update("🌧️ กำลังโหลดข้อมูลเรดาร์ฝน...", 0.25)
-    gif_file = io.BytesIO(GIF_PATH)
-    # =========================================================
-    # LOAD DATA
-    # =========================================================
-    gdf = gpd.read_file(SHP_PATH)
-    gif = imageio.mimread(GIF_PATH)
+    gif_file, last_frame_data = (
+        get_gif_and_last_frame(GIF_PATH)
+    )
+
+    # last_frame_data = get_last_gif_frame_data(GIF_PATH)
+
+    # if last_frame_data is not None:
+    #     # Convert the NumPy array to a PIL Image
+    #     img_to_save = Image.fromarray(last_frame_data)
+
+    #     # Define the output path for the GIF
+    #     output_gif_path = 'output_last_frame.gif' # You can change the filename here
+
+    #     # Save the image as a GIF
+    #     img_to_save.save(output_gif_path)
+    #     print(f"Last frame successfully saved as {output_gif_path}")
+    # else:
+    #     print("Could not retrieve last frame data to save.")
+    # # gif_path = "/content/drive/MyDrive/radar/radar (2).gif"
+    # gif_path = "output_last_frame.gif"
+    
     df_radar_metrics = process_radar_animation_and_extract_district_values(
         gif_path=gif_file,
         radar_x=radar_x,
         radar_y=radar_y,
         pixel_resolution=pixel_resolution,
-        shapefile_path=SHP_PATH,
+        shapefile_path=shapefile_path,
         target_colors=target_colors,
         values=values
     )
-    if update: update("🗺️ กำลังประมวลผลข้อมูลเขต...", 0.50)
     df_radar_metrics
-    
-
+    import pandas as pd
+    from scipy.stats import linregress
+    import numpy as np
     # Assuming df_radar_metrics is available from previous cells
     # Filter for districts that actually had some rain (score > 0 at some point)
     raining_districts_df = df_radar_metrics[df_radar_metrics['Score'] > 0]
@@ -386,10 +495,9 @@ def get_data(GIF_PATH, update = None):
             print(f"- {row['District']}: Slope={row['Slope']:.2f}, R-squared={row['R_Value']**2:.2f}, P-value={row['P_Value']:.3f}")
     else:
         print("No districts found with a significant upward linear trend in rain level.")
-
+    
     frames = []
 
-    if update: update("🎞️ สร้างภาพแต่ละ frame...", 0.60)
     average_map_frame = []
     # -----------------------------
     # READ GIF
@@ -413,20 +521,27 @@ def get_data(GIF_PATH, update = None):
 
             # frame_array = max_pooling(frame_array, ksize=5)
             # If you want box BEFORE processing
-            processed = extract_radar_frame(frame_array)
+            processed = extract_radar_frame_hsv(frame_array, target_colors)
             processed[np.all(processed == 255, axis=-1)] = 0
 
             processed = max_pooling(processed, 3)
-            processed = min_pooling(processed, 3)
-            processed = min_pooling(processed, 3)
-            processed = max_pooling(processed, 10)
-            average_map_frame.append(processed)
+            # processed = min_pooling(processed, 3)
+            # processed = min_pooling(processed, 3)
+            # processed = max_pooling(processed, 10)
+            # average_map_frame.append(processed)
             frames.append(processed)
-    if update: update("📊 กำลังสร้างภาพข้อมูล...", 0.70)
+    processed
+    # Define global variables needed for plotting and grid metrics
+    
+
+    # These should be globally available from previous cells but are re-assigned for clarity/robustness
+    # radar_x, radar_y, pixel_resolution are from 1zPY95e5iOYT
+    # gif_path, shapefile_path are from 1zPY95e5iOYT
+
     # Load gdf if not already available or ensure it's in scope
     if 'gdf' not in globals() or gdf is None:
         print("Loading gdf globally...")
-        gdf = gpd.read_file(SHP_PATH)
+        gdf = gpd.read_file(shapefile_path)
     else:
         print("gdf is already loaded globally.")
 
@@ -448,10 +563,33 @@ def get_data(GIF_PATH, update = None):
     top = radar_y + (img_height / 2 * pixel_resolution)
     img_extent = [left, right, bottom, top]
     print(f"img_extent calculated globally: {img_extent}")
+
+    # Also ensure 'all_frames_coverage' and 'all_frames_district_scores' are globally available for subsequent cells
+    # They were implicitly made global by the previous execution of 1zPY95e5iOYT (via process_radar_animation_and_extract_district_values)
+    # However, the previous modification of process_radar_animation_and_extract_district_values means they are no longer returned directly.
+    # They need to be re-derived if they are to be used outside the function's scope.
+    # Since we modified process_radar_animation_and_extract_district_values to return a single DataFrame (df_radar_metrics),
+    # we should use that DataFrame instead of trying to access these internal lists.
+    # The cells 'WlXihorjBPMX', 'fce26709', 'Aq16Y3QOC06I', 'CxI_Lly9FCyY' rely on these lists directly.
+    # This indicates these cells might need to be re-written to work with df_radar_metrics or the function output needs to be unpacked.
+    # For now, I will proceed to ensure basic plotting of frames and grid metrics are functional, as these are the immediate errors.
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import matplotlib.font_manager as fm
+    import os
+    from matplotlib.patches import Patch
+
+    # --- Font Configuration for Thai Characters ---
+    # Install Thai fonts if not already installed (for Colab environment)
+    # !apt-get install -y fonts-thai-tlwg > /dev/null
+
+    # Find a Thai font available on the system
+    # A common choice is 'TH Sarabun New' or 'Garuda'
+    # You can inspect available fonts with `fm.findSystemFonts(fontpaths=None, fontext='ttf')`
     font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
     thai_font_path = None
     for font_path in font_paths:
-        if 'Sarabun' in font_path or 'Garuda' in font_path or 'Laksaman' in font_path: # Look for common Thai fonts
+        if 'tahoma' in font_path: # Look for common Thai fonts
             thai_font_path = font_path
             break
 
@@ -466,50 +604,96 @@ def get_data(GIF_PATH, update = None):
 
 
     print(f"Generating plots for {len(frames)} radar frames...")
-    # =========================================================
-    # AUTO DETECT DISTRICT COLUMN
-    # =========================================================
-    print(gdf.columns)
 
-    possible_cols = [
+    # Ensure district_col is defined (e.g., 'ADM3_EN' or 'DISTRICT_T')
+    # This variable might be defined globally, but it's safer to ensure it here.
+    district_col = 'ADM3_EN' if 'ADM3_EN' in gdf.columns else 'DISTRICT_T'
 
-        "ADM3_EN",
-        "ADM3_TH",
-        "DISTRICT_T",
-        "DISTRICT",
-        "NAME",
-        "AMPHOE_T",
-        "AMP_NAME",
-        "เขต"
-    ]
+    all_raining_districts_per_frame = [] # New list to store raining districts for each frame
 
-    district_col = None
+    for i, frame_rgb in enumerate(frames):
+        fig, ax = plt.subplots(figsize=(12, 10))
 
-    for col in possible_cols:
+        # --- Start of Highlight each district logic ---
+        # Get districts with rain in the current frame from df_radar_metrics
+        # df_radar_metrics should be available from previous executions
+        current_frame_df = df_radar_metrics[df_radar_metrics['Frame'] == (i + 1)]
+        raining_districts_in_frame = current_frame_df[current_frame_df['Coverage'] > 0]['District'].tolist()
+        all_raining_districts_per_frame.append(f"Frame {i+1}: {raining_districts_in_frame}") # Store for later printing
 
-        if col in gdf.columns:
+        # Separate GeoDataFrame into districts with and without radar coverage in the current frame
+        districts_with_radar = gdf[gdf[district_col].isin(raining_districts_in_frame)]
+        districts_without_radar = gdf[~gdf[district_col].isin(raining_districts_in_frame)]
 
-            district_col = col
-            break
+        # Plot districts without radar coverage (default style)
+        districts_without_radar.plot(ax=ax, edgecolor='red', facecolor='none', linewidth=1)
+        # Plot districts with radar coverage (highlighted style: yellow fill, black border)
+        districts_with_radar.plot(ax=ax, edgecolor='black', facecolor='yellow', linewidth=2, alpha=0.5)
 
-    if district_col is None:
+        # --- End of Highlight each district logic ---
 
-        raise ValueError(
-            f"No district column found.\nAvailable columns:\n{gdf.columns}"
-        )
+        # Convert the processed RGB radar frame to RGBA for transparency
+        # Black pixels (0,0,0) will be made transparent
+        h, w, _ = frame_rgb.shape
+        frame_rgba = np.zeros((h, w, 4), dtype=np.uint8)
+        frame_rgba[:, :, :3] = frame_rgb  # Copy RGB channels
 
-    print("Using district column:", district_col)
-    
-    # =========================================================
-    # IMAGE SIZE
-    # =========================================================
-    h, w, _ = frames[0].shape
+        # Set alpha to 0 for black pixels (background) and 255 for radar pixels
+        # Using np.all for exact black match, you might adjust this tolerance if needed
+        black_pixels_mask = np.all(frame_rgb == [0, 0, 0], axis=-1)
+        frame_rgba[~black_pixels_mask, 3] = 255 # Opaque for radar data
+        frame_rgba[black_pixels_mask, 3] = 0   # Transparent for background
 
-    # =========================================================
-    # TRANSFORM
-    # =========================================================
-    left, right, bottom, top = img_extent
+        # Overlay the radar image with the calculated extent and general alpha
+        # The 'alpha' parameter here applies an overall transparency to the entire image
+        # In addition to the pixel-level transparency set in frame_rgba's alpha channel.
+        # You can adjust the overall_alpha value below.
+        overall_alpha = 0.8 # Adjust this value (0.0 to 1.0) for overall radar transparency
+        ax.imshow(frame_rgba, extent=img_extent, alpha=overall_alpha)
 
+        # Plot the radar station
+        ax.scatter(radar_x, radar_y, color='blue', marker='+', s=200)
+
+        # --- Add annotations for district names (similar to 7PMwN6uMnqni) ---
+        for idx, row in gdf.iterrows():
+            district_name = row[district_col]
+            # Get centroid coordinates for annotation
+            x_centroid, y_centroid = row.geometry.centroid.x, row.geometry.centroid.y
+
+            # Determine annotation style based on whether the district has rain in this frame
+            if district_name in raining_districts_in_frame:
+                bbox_style = dict(boxstyle="round,pad=0.2", fc="yellow", alpha=0.7) # Highlighted
+                text_color = 'black'
+
+                print(district_name)
+                # ax.annotate(district_name, xy=(x_centroid, y_centroid), xytext=(3, 3), textcoords="offset points",
+                #             ha='center', va='center', fontsize=8, color=text_color,
+                #             bbox=bbox_style)
+        # --- End of annotations for district names ---
+
+        ax.set_title(f'Radar Frame {i+1} on Map')
+        ax.set_xlabel('UTM X Coordinate')
+        ax.set_ylabel('UTM Y Coordinate')
+        ax.grid(True, alpha=0.3)
+
+        # Create custom legend handles
+        legend_handles = [
+            Patch(facecolor='yellow', edgecolor='black', linewidth=2, alpha=0.5, label='Districts with Radar Coverage'),
+            plt.Line2D([0], [0], marker='+', color='blue', markersize=10, linestyle='None', label='Radar Station')
+        ]
+        ax.legend(handles=legend_handles)
+        plt.tight_layout()
+        # plt.show()
+        # You can save the frames as a GIF if you prefer, uncomment the lines below:
+        # from PIL import Image
+        # img_pil = Image.fromarray(np.uint8(fig.canvas.buffer_rgba()))
+        # # Store images in a list and then use imageio.mimsave to create an animated GIF
+        # # For example: all_plot_frames.append(img_pil)
+
+    print("Finished generating all radar plots.")
+    print("\nDistricts with radar coverage per frame:")
+    for item in all_raining_districts_per_frame:
+        print(item)
     transform = from_bounds(
         left,
         bottom,
@@ -518,10 +702,6 @@ def get_data(GIF_PATH, update = None):
         w,
         h
     )
-
-    # =========================================================
-    # STORE COVERAGE
-    # =========================================================
     district_coverage_summary = {}
 
     all_raining_districts_per_frame = []
@@ -529,11 +709,17 @@ def get_data(GIF_PATH, update = None):
     # =========================================================
     # PROCESS EACH FRAME
     # =========================================================
+    rain_persistance_formula = ['frame_index', 'average', 'last_frame']
+
+    current_rain_persistance_formula = 'last_frame'
+    
+    rain_persistance = {}
     for i, frame_rgb in enumerate(frames):
 
-        print(f"\n========================")
-        print(f"FRAME {i+1}")
-        print(f"========================")
+        
+        # print(f"\n========================")
+        # print(f"FRAME {i+1}")
+        # print(f"========================")
 
         # =====================================================
         # CREATE FIGURE
@@ -567,7 +753,7 @@ def get_data(GIF_PATH, update = None):
         # =====================================================
         raining_districts_in_frame = []
 
-        rain_persistance = {}
+        
         # =====================================================
         # LOOP DISTRICT
         # =====================================================
@@ -603,7 +789,7 @@ def get_data(GIF_PATH, update = None):
                 coverage = (
                     radar_pixels / total_pixels
                 ) * 100
-            print(radar_pixels ," / ", total_pixels)
+            # print(radar_pixels ," / ", total_pixels)
             # -------------------------------------------------
             # SAVE COVERAGE
             # -------------------------------------------------
@@ -750,10 +936,17 @@ def get_data(GIF_PATH, update = None):
                     f"Rain Severity Score = "
                     f"{rain_severity_score:.2f}"
                 )
-            if district_name not in rain_persistance:
-                rain_persistance[district_name] = 0.0
-            rain_persistance[district_name] += i * rain_severity_score
-        
+            # print(current_rain_persistance_formula, i)
+            if current_rain_persistance_formula == 'last_frame' and i == len(frames) - 1 :
+                if district_name not in rain_persistance:
+                    rain_persistance[district_name] = 0.0
+                rain_persistance[district_name] += (i + 1) * rain_severity_score
+            elif current_rain_persistance_formula == 'frame_index':
+                if district_name not in rain_persistance:
+                    rain_persistance[district_name] = 0.0
+                rain_persistance[district_name] += (i + 1) * rain_severity_score
+            
+       
         # =====================================================
         # rain_severity_score
         # =====================================================
@@ -972,10 +1165,10 @@ def get_data(GIF_PATH, update = None):
     }
     def get_rain_level(score):
 
-        if score >= 400:
+        if score >= 600:
             return "heavy"
 
-        elif score >= 100:
+        elif score >= 300:
             return "medium"
 
         elif score > 0:
@@ -999,15 +1192,18 @@ def get_data(GIF_PATH, update = None):
             district_name
         )
 
-        print(
-            district_name,
-            rain_value,
-            "->",
-            thai_intensity_labels[level]
-        )
+        # print(
+        #     district_name,
+        #     rain_value,
+        #     "->",
+        #     thai_intensity_labels[level]
+        # )
     if update: update("📈...", 1.0)
     
     return gif_bytes, grouped_district_name
-
 if __name__ == "__main__":
-    print(get_data(gif_path))
+    gif_path = r"C:/Users/BMA_01/Documents/ขอข้อมูล/2026-05-01-main-captioner/example/20260525_040000.webp"
+    gif_bytes, grouped_district_name = get_data(gif_path)
+    print(grouped_district_name)
+    if (len(grouped_district_name['heavy'])+len(grouped_district_name["medium"])+len(grouped_district_name['light']) > 0):
+        print(grouped_district_name['heavy'], grouped_district_name["medium"], grouped_district_name['light'])

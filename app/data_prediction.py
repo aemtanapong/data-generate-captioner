@@ -104,7 +104,7 @@ def create_in_memory_gif(frames_4d_array, fps=10):
     gif_buffer.seek(0) # Rewind the buffer to the beginning
     return gif_buffer.getvalue()
 
-print("create_in_memory_gif function defined.")
+# print("create_in_memory_gif function defined.")
 def calculate_district_metrics(radar_frame_rgba, district_gdf, radar_extent, target_colors, values, threshold=60):
     """
     Calculates both radar coverage percentage and a 'score' for each district
